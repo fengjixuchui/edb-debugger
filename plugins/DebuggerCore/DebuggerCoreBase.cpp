@@ -80,9 +80,9 @@ std::shared_ptr<IBreakpoint> DebuggerCoreBase::find_breakpoint(edb::address_t ad
 //------------------------------------------------------------------------------
 std::shared_ptr<IBreakpoint> DebuggerCoreBase::find_triggered_breakpoint(edb::address_t address) {
 	if(attached()) {
-		for(const auto size : Breakpoint::possible_rewind_sizes()) {
-			const auto bpAddr = address-size;
-			const auto bp = find_breakpoint(bpAddr);
+		for(const size_t size : Breakpoint::possible_rewind_sizes()) {
+			const edb::address_t bpAddr = address - size;
+			const std::shared_ptr<IBreakpoint> bp = find_breakpoint(bpAddr);
 
 			if(bp && bp->address() == bpAddr) {
 				return bp;
@@ -144,15 +144,6 @@ void DebuggerCoreBase::end_debug_session() {
 DebuggerCoreBase::BreakpointList DebuggerCoreBase::backup_breakpoints() const {
 	return breakpoints_;
 }
-
-//------------------------------------------------------------------------------
-// Name: open
-// Desc: executes the given program
-//------------------------------------------------------------------------------
-Status DebuggerCoreBase::open(const QString &path, const QString &cwd, const QList<QByteArray> &args) {
-	return open(path, cwd, args, QString());
-}
-
 
 //------------------------------------------------------------------------------
 // Name: attached

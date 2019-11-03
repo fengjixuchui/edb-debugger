@@ -134,8 +134,8 @@ void handle_library_event(IProcess *process, edb::address_t debug_pointer) {
 		}
 	}
 #else
-	Q_UNUSED(process);
-	Q_UNUSED(debug_pointer);
+	Q_UNUSED(process)
+	Q_UNUSED(debug_pointer)
 #endif
 }
 
@@ -148,8 +148,8 @@ edb::address_t find_linker_hook_address(IProcess *process, edb::address_t debug_
 		return edb::address_t::fromZeroExtended(dynamic_info.r_brk);
 	}
 #else
-	Q_UNUSED(process);
-	Q_UNUSED(debug_pointer);
+	Q_UNUSED(process)
+	Q_UNUSED(debug_pointer)
 #endif
 	return edb::address_t(0);
 }
@@ -204,7 +204,7 @@ public:
 	// Name: handle_event
 	//--------------------------------------------------------------------------
 	//TODO: Need to handle stop/pause button
-	virtual edb::EVENT_STATUS handle_event(const std::shared_ptr<IDebugEvent> &event) {
+	edb::EVENT_STATUS handle_event(const std::shared_ptr<IDebugEvent> &event) override {
 
 		if(!event->is_trap()) {
 			return pass_back_to_debugger();
@@ -499,6 +499,13 @@ Debugger::Debugger(QWidget *parent) : QMainWindow(parent),
 // Desc:
 //------------------------------------------------------------------------------
 Debugger::~Debugger() {
+
+	for(QObject *plugin: edb::v1::plugin_list()) {
+		if(auto p = qobject_cast<IPlugin *>(plugin)) {
+			p->fini();
+		}
+	}
+
 	// kill our xterm and wait for it to die
 	tty_proc_->kill();
 	tty_proc_->waitForFinished(3000);
@@ -692,8 +699,8 @@ QString Debugger::create_tty() {
 // Desc: cleans up the data associated with a TTY when the terminal dies
 //------------------------------------------------------------------------------
 void Debugger::tty_proc_finished(int exit_code, QProcess::ExitStatus exit_status) {
-	Q_UNUSED(exit_code);
-	Q_UNUSED(exit_status);
+	Q_UNUSED(exit_code)
+	Q_UNUSED(exit_status)
 
 	tty_file_.clear();
 }
@@ -864,10 +871,9 @@ void Debugger::finish_plugin_setup() {
 //------------------------------------------------------------------------------
 Result<edb::address_t, QString> Debugger::get_goto_expression() {
 
-	edb::address_t address;
-	bool ok = edb::v1::get_expression_from_user(tr("Goto Expression"), tr("Expression:"), &address);
-	if(ok) {
-		return address;
+	boost::optional<edb::address_t> address = edb::v2::get_expression_from_user(tr("Goto Expression"), tr("Expression:"));
+	if(address) {
+		return *address;
 	} else {
 		return make_unexpected(tr("No Address"));
 	}
@@ -879,7 +885,7 @@ Result<edb::address_t, QString> Debugger::get_goto_expression() {
 //------------------------------------------------------------------------------
 Result<edb::reg_t, QString> Debugger::get_follow_register() const {
 
-	const auto reg = active_register();
+	const Register reg = active_register();
 	if(!reg || reg.bitSize() > 8 * sizeof(edb::address_t)) {
 		return make_unexpected(tr("No Value"));
 	}
@@ -990,8 +996,8 @@ void Debugger::closeEvent(QCloseEvent *event) {
 		SessionManager::instance().save_session(filename);
 	}
 
-	if(const auto& dc = edb::v1::debugger_core) {
-		dc->end_debug_session();
+	if(IDebugger *core = edb::v1::debugger_core) {
+		core->end_debug_session();
 	}
 
 	// ensure that the detach event fires so that everyone who cases will be notified
@@ -1699,7 +1705,7 @@ void Debugger::on_cpuView_customContextMenuRequested(const QPoint &pos) {
 
 	if(IProcess *process = edb::v1::debugger_core->process()) {
 
-		Q_UNUSED(process);
+		Q_UNUSED(process)
 
 		quint8 buffer[edb::Instruction::MAX_SIZE + 1];
 		if(edb::v1::get_instruction_bytes(address, buffer, &size)) {
@@ -1769,7 +1775,7 @@ void Debugger::mnuCPUFollow() {
 
 	const edb::address_t addressToFollow=util::to_unsigned(inst[0]->imm);
 	if(auto action = qobject_cast<QAction *>(sender())) {
-		Q_UNUSED(action);
+		Q_UNUSED(action)
 		follow_memory(addressToFollow, edb::v1::jump_to_address);
 	}
 }
@@ -2046,8 +2052,9 @@ void Debugger::mnuCPUFillZero() {
 // Desc:
 //------------------------------------------------------------------------------
 void Debugger::mnuCPUFillNop() {
-	// TODO: get system independent nop-code
-	cpu_fill(0x90);
+	if(IDebugger *core = edb::v1::debugger_core) {
+		cpu_fill(core->nopFillByte());
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -2170,11 +2177,10 @@ void Debugger::mnuStackModify() {
 //------------------------------------------------------------------------------
 bool Debugger::breakpoint_condition_true(const QString &condition) {
 
-	edb::address_t condition_value;
-	if(!edb::v1::eval_expression(condition, &condition_value)) {
-		return true;
+	if(boost::optional<edb::address_t> condition_value = edb::v2::eval_expression(condition)) {
+		return *condition_value;
 	}
-	return condition_value;
+	return true;
 }
 
 //------------------------------------------------------------------------------
@@ -2975,7 +2981,7 @@ void Debugger::on_action_Restart_triggered() {
 			common_open(s, args);
 		}
 	} else {
-		const auto file=recent_file_manager_->most_recent();
+		const auto file = recent_file_manager_->most_recent();
 		if(common_open(file.first, file.second))
 			arguments_dialog_->set_arguments(file.second);
 	}
@@ -3137,24 +3143,24 @@ void Debugger::attachComplete() {
 //------------------------------------------------------------------------------
 void Debugger::on_action_Open_triggered() {
 
-	static auto* dialog = new DialogOpenProgram(this,
-												tr("Choose a file"),
-												last_open_directory_);
+	static auto dialog = new DialogOpenProgram(this, tr("Choose a file"), last_open_directory_);
+
 	// Set a sensible default dir
-	if(recent_file_manager_->entry_count()>0)
-	{
-		const auto file=recent_file_manager_->most_recent();
-		const QDir dir=QFileInfo(file.first).dir();
-		if(dir.exists())
+	if(recent_file_manager_->entry_count() > 0) {
+		const RecentFileManager::RecentFile file = recent_file_manager_->most_recent();
+		const QDir dir = QFileInfo(file.first).dir();
+		if(dir.exists()) {
 			dialog->setDirectory(dir);
+		}
 	}
+
 	if(dialog->exec() == QDialog::Accepted) {
 
 		arguments_dialog_->set_arguments(dialog->arguments());
 		QStringList files = dialog->selectedFiles();
 		const QString filename = files.front();
 		working_directory_ = dialog->workingDirectory();
-		open_file(filename,dialog->arguments());
+		open_file(filename, dialog->arguments());
 	}
 }
 

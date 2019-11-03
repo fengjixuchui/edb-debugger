@@ -73,30 +73,24 @@ void ExpressionDialog::on_text_changed(const QString& text) {
 
 	bool retval = false;
 
-	if (resAddr)
-	{
+	if (resAddr) {
 		last_address_ = resAddr;
 		retval = true;
-	}
-	else
-	{
+	} else {
 		Expression<edb::address_t> expr(text, edb::v1::get_variable, edb::v1::get_value);
-		ExpressionError err;
 
-		bool ok;
-		last_address_ = expr.evaluate_expression(&ok, &err);
-		if(ok) {
+		Result<edb::address_t, ExpressionError> address = expr.evaluate_expression();
+		if(address) {
+			label_error_->clear();
 			retval = true;
+			last_address_ = *address;
 		} else {
-			label_error_->setText(err.what());
+			label_error_->setText(address.error().what());
 			retval = false;
 		}
 	}
 
 	button_box_->button(QDialogButtonBox::Ok)->setEnabled(retval);
-	if (retval) {
-		label_error_->clear();
-	}
 }
 
 edb::address_t ExpressionDialog::getAddress() {

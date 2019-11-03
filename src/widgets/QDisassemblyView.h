@@ -42,8 +42,21 @@ class QPainter;
 class QTextDocument;
 class SyntaxHighlighter;
 
-class QDisassemblyView : public QAbstractScrollArea {
+class QDisassemblyView final : public QAbstractScrollArea {
 	Q_OBJECT
+
+private:
+	struct DrawingContext {
+		int l1;
+		int l2;
+		int l3;
+		int l4;
+		int lines_to_render;
+		int selected_line;
+		int line_height;
+		QPalette::ColorGroup group;
+		std::map<int, int> line_badge_width;  // for jmp drawing
+	};
 
 public:
     explicit QDisassemblyView(QWidget *parent = nullptr);
@@ -101,11 +114,12 @@ private:
 	boost::optional<unsigned int> get_line_of_address(edb::address_t addr) const;
 	edb::address_t address_from_coord(int x, int y) const;
 	int address_length() const;
-	int auto_line1() const;
-	int draw_instruction(QPainter &painter, const edb::Instruction &inst, int y, int line_height, int l2, int l3, bool selected);	
+	int auto_line2() const;	
+	int line0() const;
 	int line1() const;
 	int line2() const;
 	int line3() const;
+	int line4() const;
 	int line_height() const;
 	int previous_instructions(int current_address, int count);
 	int previous_instruction(IAnalyzer *analyzer, int current_address);
@@ -117,6 +131,18 @@ private:
 	void setAddressOffset(edb::address_t address);
 	void updateScrollbars();
 	void updateSelectedAddress(QMouseEvent *event);
+
+	void drawInstruction(QPainter &painter, const edb::Instruction &inst, const DrawingContext *ctx, int y, bool selected);
+	void drawHeaderAndBackground(QPainter &painter, const DrawingContext *ctx, const std::unique_ptr<IBinary> &binary_info);
+	void drawRegiserBadges(QPainter &painter, DrawingContext *ctx);
+	void drawSymbolNames(QPainter &painter, const DrawingContext *ctx);
+	void drawSidebarElements(QPainter &painter, const DrawingContext *ctx);
+	void drawInstructionBytes(QPainter &painter, const DrawingContext *ctx);
+	void drawFunctionMarkers(QPainter &painter, const DrawingContext *ctx);
+	void drawComments(QPainter &painter, const DrawingContext *ctx);
+	void drawJumpArrows(QPainter &painter, const DrawingContext *ctx);
+	void drawDisassembly(QPainter &painter, const DrawingContext *ctx);
+	void drawDividers(QPainter &painter, const DrawingContext *ctx);
 
 private:
 	edb::address_t address_offset_               { 0 };
@@ -130,10 +156,12 @@ private:
 	int            line1_                        = 0;
 	int            line2_                        = 0;
 	int            line3_                        = 0;
+	int            line4_                        = 0;
 	int            selected_instruction_size_    = 0;
 	bool           moving_line1_                 = false;
 	bool           moving_line2_                 = false;
 	bool           moving_line3_                 = false;
+	bool           moving_line4_                 = false;
 	bool           selecting_address_            = false;
 	bool           partial_last_line_            = false;
 
@@ -150,6 +178,29 @@ private:
 	QSvgRenderer                          current_bp_renderer_;
 	std::vector<quint8>                   instruction_buffer_;
 	QCache<QString, QPixmap>              syntax_cache_;
+
+private:
+
+	struct JumpArrow {
+
+		int src_line;
+		edb::address_t target;
+
+		// if target is visible in viewport
+		bool dst_in_viewport;
+
+		// only valid is dst_in_viewport is true
+		bool dst_in_middle_of_instruction;
+
+		// if dst_in_viewport is false, then this param is ignored
+		int dst_line;
+
+		// if dst_in_viewport is false, then the value here should be near INT_MAX
+		size_t distance;
+
+		// length of arrow horizontal
+		int horizontal_length;
+	};
 };
 
 #endif

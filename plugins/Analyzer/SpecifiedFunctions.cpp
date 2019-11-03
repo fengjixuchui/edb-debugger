@@ -24,8 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QSortFilterProxyModel>
 #include <QHeaderView>
 #include <QtDebug>
-
-#include "ui_SpecifiedFunctions.h"
+#include <QPushButton>
 
 namespace AnalyzerPlugin {
 
@@ -33,25 +32,26 @@ namespace AnalyzerPlugin {
 // Name: SpecifiedFunctions
 // Desc:
 //------------------------------------------------------------------------------
-SpecifiedFunctions::SpecifiedFunctions(QWidget *parent) : QDialog(parent), ui(new Ui::SpecifiedFunctions) {
-	ui->setupUi(this);
+SpecifiedFunctions::SpecifiedFunctions(QWidget *parent, Qt::WindowFlags f) : QDialog(parent, f) {
+	ui.setupUi(this);
 
 	model_        = new QStringListModel(this);
 	filter_model_ = new QSortFilterProxyModel(this);
 
 	filter_model_->setFilterKeyColumn(0);
 	filter_model_->setSourceModel(model_);
-	ui->function_list->setModel(filter_model_);
+	ui.function_list->setModel(filter_model_);
 
-	connect(ui->filter, &QLineEdit::textChanged, filter_model_, &QSortFilterProxyModel::setFilterFixedString);
-}
+	connect(ui.filter, &QLineEdit::textChanged, filter_model_, &QSortFilterProxyModel::setFilterFixedString);
 
-//------------------------------------------------------------------------------
-// Name: ~SpecifiedFunctions
-// Desc:
-//------------------------------------------------------------------------------
-SpecifiedFunctions::~SpecifiedFunctions() {
-	delete ui;
+	btnRefresh_ = new QPushButton(QIcon::fromTheme("view-refresh"), tr("Refresh"));
+	connect(btnRefresh_, &QPushButton::clicked, this, [this]() {
+		btnRefresh_->setEnabled(false);
+		do_find();
+		btnRefresh_->setEnabled(true);
+	});
+
+	ui.buttonBox->addButton(btnRefresh_, QDialogButtonBox::ActionRole);
 }
 
 //------------------------------------------------------------------------------
@@ -71,6 +71,7 @@ void SpecifiedFunctions::on_function_list_doubleClicked(const QModelIndex &index
 // Desc:
 //------------------------------------------------------------------------------
 void SpecifiedFunctions::do_find() {
+
 	IAnalyzer *const analyzer = edb::v1::analyzer();
 	QSet<edb::address_t> functions = analyzer->specified_functions();
 	QStringList results;
@@ -81,22 +82,13 @@ void SpecifiedFunctions::do_find() {
 }
 
 //------------------------------------------------------------------------------
-// Name: on_refresh_button_clicked
-// Desc:
-//------------------------------------------------------------------------------
-void SpecifiedFunctions::on_refresh_button_clicked() {
-	ui->refresh_button->setEnabled(false);
-	do_find();
-	ui->refresh_button->setEnabled(true);
-}
-
-
-//------------------------------------------------------------------------------
 // Name: showEvent
 // Desc:
 //------------------------------------------------------------------------------
 void SpecifiedFunctions::showEvent(QShowEvent *) {
-	on_refresh_button_clicked();
+	btnRefresh_->setEnabled(false);
+	do_find();
+	btnRefresh_->setEnabled(true);
 }
 
 }

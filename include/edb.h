@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QStringList>
 #include <QVector>
 #include <memory>
+#include <boost/optional.hpp>
 
 class ArchProcessor;
 class Configuration;
@@ -58,6 +59,13 @@ class Model;
 namespace edb {
 
 struct Prototype;
+
+namespace v2 {
+// ask the user for a value in an expression form
+EDB_EXPORT boost::optional<edb::address_t> get_expression_from_user(const QString &title, const QString &prompt);
+EDB_EXPORT boost::optional<edb::address_t> eval_expression(const QString &expression);
+
+}
 
 namespace v1 {
 
@@ -108,7 +116,7 @@ EDB_EXPORT bool get_value_from_user(Register &value, const QString &title);
 EDB_EXPORT bool get_value_from_user(Register &value);
 
 // ask the user for a binary string via an input box (max_length forces maximum length, setting it to 0 removes the restriction)
-EDB_EXPORT bool get_binary_string_from_user(QByteArray &value, const QString &title, int max_length=0);
+EDB_EXPORT bool get_binary_string_from_user(QByteArray &value, const QString &title, int max_length = 0);
 
 // determine if the given address is the starting point of an string, if so, s will contain it
 // (formatted with C-style escape chars, so foundLength will have the original length of the string in chars).

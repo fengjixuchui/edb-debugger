@@ -89,11 +89,11 @@ QVariant RegisterViewModel::data(QModelIndex const& index, int role) const {
 	if(role==FixedLengthRole)
 	{
 		using namespace RegisterViewModelBase;
-		const auto reg=static_cast<RegisterViewItem*>(index.internalPointer());
-		const auto name=reg->data(NAME_COLUMN).toString();
-		if(index.column()==NAME_COLUMN && name.length()>=2)
+		const auto reg = static_cast<RegisterViewItem*>(index.internalPointer());
+		const auto name = reg->data(NAME_COLUMN).toString();
+		if(index.column() == NAME_COLUMN && name.length()>=2)
 		{
-			const auto nameLower=name.toLower();
+			const QString nameLower=name.toLower();
 			if((nameLower[0]=='r' && '0'<=nameLower[1] && nameLower[1]<='9') ||
 					nameLower=="sp" || nameLower=="lr" || nameLower=="pc")
 				return 3;
@@ -150,22 +150,24 @@ void invalidate(RegisterViewModelBase::Category* cat, int row, const char* nameT
 {
 	if(!cat) return;
 	Q_ASSERT(row<cat->childCount());
-	const auto reg=cat->getRegister(row);
-	Q_ASSERT(!nameToCheck || reg->name()==nameToCheck); Q_UNUSED(nameToCheck);
+	const auto reg = cat->getRegister(row);
+	Q_ASSERT(!nameToCheck || reg->name()==nameToCheck);
+	Q_UNUSED(nameToCheck)
 	reg->invalidate();
 }
 
 template<typename RegType, typename ValueType>
 void updateRegister(RegisterViewModelBase::Category* cat, int row, ValueType value, QString const& comment, const char* nameToCheck=0)
 {
-	const auto reg=cat->getRegister(row);
+	const auto reg = cat->getRegister(row);
 	if(!dynamic_cast<RegType*>(reg))
 	{
 		qWarning() << "Failed to update register " << reg->name() << ": failed to convert register passed to expected type " << typeid(RegType).name();
 		invalidate(cat,row,nameToCheck);
 		return;
 	}
-	Q_ASSERT(!nameToCheck || reg->name()==nameToCheck); Q_UNUSED(nameToCheck);
+	Q_ASSERT(!nameToCheck || reg->name()==nameToCheck);
+	Q_UNUSED(nameToCheck)
 	static_cast<RegType*>(reg)->update(value,comment);
 }
 

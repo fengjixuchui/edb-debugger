@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QList>
 #include <QDebug>
 
-void invalidate(RegisterViewModelBase::Category* cat, int row, const char* nameToCheck=nullptr);
+void invalidate(RegisterViewModelBase::Category* cat, int row, const char* nameToCheck = nullptr);
 
 namespace
 {
@@ -339,21 +339,22 @@ void addAVXRegs(RegisterViewModelBase::SIMDCategory* avxRegs, unsigned regCount)
 	avxRegs->addRegister(std::make_unique<MXCSR>("MXCSR",MXCSRDescription));
 }
 
-QVariant RegisterViewModel::data(const QModelIndex &index, int role) const
-{
-	if(role==FixedLengthRole)
-	{
+QVariant RegisterViewModel::data(const QModelIndex &index, int role) const {
+	if(role == FixedLengthRole) {
+	
 		using namespace RegisterViewModelBase;
-		const auto reg=static_cast<RegisterViewItem*>(index.internalPointer());
-		const auto name=reg->data(NAME_COLUMN).toString();
-		if(index.column()==NAME_COLUMN)
-		{
-			if(name=="R8"||name=="R9")
+
+		const auto reg = static_cast<RegisterViewItem*>(index.internalPointer());
+		const auto name = reg->data(NAME_COLUMN).toString();
+
+		if(index.column() == NAME_COLUMN) {
+			if(name == "R8" || name == "R9") {
 				return 3;
-			if(name.startsWith("XMM") || name.startsWith("YMM"))
-			{
-				if(mode==CPUMode::IA32) return 4;
-				if(mode==CPUMode::AMD64) return 5;
+			}
+			
+			if(name.startsWith("XMM") || name.startsWith("YMM")) {
+				if(mode == CPUMode::IA32)  return 4;
+				if(mode == CPUMode::AMD64) return 5;
 				return {};
 			}
 		}
@@ -392,17 +393,18 @@ RegisterViewModel::RegisterViewModel(int cpuSuppFlags, QObject* parent)
 	addDebugRegs<32>(dbgRegs32);
 	addDebugRegs<64>(dbgRegs64);
 
-	if(cpuSuppFlags&CPUFeatureBits::MMX)
+	if(cpuSuppFlags&CPUFeatureBits::MMX) {
 		addMMXRegs(mmxRegs);
-	if(cpuSuppFlags&CPUFeatureBits::SSE)
-	{
-		addSSERegs(sseRegs32,SSE_REG_COUNT32);
-		addSSERegs(sseRegs64,SSE_REG_COUNT64);
 	}
-	if(cpuSuppFlags&CPUFeatureBits::AVX)
-	{
-		addAVXRegs(avxRegs32,AVX_REG_COUNT32);
-		addAVXRegs(avxRegs64,AVX_REG_COUNT64);
+		
+	if(cpuSuppFlags&CPUFeatureBits::SSE) {
+		addSSERegs(sseRegs32, SSE_REG_COUNT32);
+		addSSERegs(sseRegs64, SSE_REG_COUNT64);
+	}
+	
+	if(cpuSuppFlags&CPUFeatureBits::AVX) {
+		addAVXRegs(avxRegs32, AVX_REG_COUNT32);
+		addAVXRegs(avxRegs64, AVX_REG_COUNT64);
 	}
 
 	setCPUMode(CPUMode::UNKNOWN);
@@ -411,14 +413,15 @@ RegisterViewModel::RegisterViewModel(int cpuSuppFlags, QObject* parent)
 template<typename RegType, typename ValueType>
 void updateRegister(RegisterViewModelBase::Category* cat, int row, ValueType value, const QString &comment, const char* nameToCheck = nullptr)
 {
-	const auto reg=cat->getRegister(row);
+	const auto reg = cat->getRegister(row);
 	if(!dynamic_cast<RegType*>(reg))
 	{
 		qWarning() << "Failed to update register " << reg->name() << ": failed to convert register passed to expected type " << typeid(RegType).name();
 		invalidate(cat,row,nameToCheck);
 		return;
 	}
-	Q_ASSERT(!nameToCheck || reg->name()==nameToCheck); Q_UNUSED(nameToCheck);
+	Q_ASSERT(!nameToCheck || reg->name()==nameToCheck);
+	Q_UNUSED(nameToCheck)
 	static_cast<RegType*>(reg)->update(value,comment);
 }
 
@@ -473,7 +476,7 @@ RegisterViewModelBase::FPUCategory* RegisterViewModel::getFPUcat() const
 
 void RegisterViewModel::updateFPUReg(std::size_t i, edb::value80 value, const QString &comment)
 {
-	const auto cat=getFPUcat();
+	const auto cat = getFPUcat();
 	Q_ASSERT(int(i)<cat->childCount());
 	updateRegister<FPUReg>(cat, static_cast<int>(i), value, comment);
 }
@@ -498,7 +501,8 @@ void invalidate(RegisterViewModelBase::Category* cat, int row, const char* nameT
 	if(!cat) return;
 	Q_ASSERT(row<cat->childCount());
 	const auto reg=cat->getRegister(row);
-	Q_ASSERT(!nameToCheck || reg->name()==nameToCheck); Q_UNUSED(nameToCheck);
+	Q_ASSERT(!nameToCheck || reg->name()==nameToCheck);
+	Q_UNUSED(nameToCheck)
 	reg->invalidate();
 }
 

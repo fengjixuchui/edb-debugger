@@ -43,11 +43,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <arpa/inet.h>
 #endif
 
-#include "ui_DialogProcessProperties.h"
-
 namespace ProcessPropertiesPlugin {
 
 namespace {
+
+QString arguments_to_string(const QList<QByteArray> &args) {
+	QString ret;
+
+	for(const QByteArray &arg : args) {
+		ret.append(' ');
+		ret.append(QString::fromUtf8(arg));
+	}
+
+	ret.remove(0, 1);
+	return ret;
+}
 
 QString size_to_string(size_t n) {
 
@@ -87,7 +97,7 @@ bool tcp_socket_prcoessor(QString *symlink, int sock, const QStringList &lst) {
 					const uint16_t remote_port = lst[4].toUInt(&ok, 16);
 					if(ok) {
 						const uint8_t state = lst[5].toUInt(&ok, 16);
-						Q_UNUSED(state);
+						Q_UNUSED(state)
 						if(ok) {
 							const int inode = lst[13].toUInt(&ok, 10);
 							if(ok) {
@@ -129,7 +139,7 @@ bool udp_socket_processor(QString *symlink, int sock, const QStringList &lst) {
 					const uint16_t remote_port = lst[4].toUInt(&ok, 16);
 					if(ok) {
 						const uint8_t state = lst[5].toUInt(&ok, 16);
-						Q_UNUSED(state);
+						Q_UNUSED(state)
 						if(ok) {
 							const int inode = lst[13].toUInt(&ok, 10);
 							if(ok) {
@@ -261,11 +271,11 @@ QString process_socket_udp(QString *symlink) {
 // Name: DialogProcessProperties
 // Desc:
 //------------------------------------------------------------------------------
-DialogProcessProperties::DialogProcessProperties(QWidget *parent) : QDialog(parent), ui(new Ui::DialogProcessProperties) {
-	ui->setupUi(this);
-	ui->tableModules->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-	ui->tableMemory->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-	ui->threadTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+DialogProcessProperties::DialogProcessProperties(QWidget *parent, Qt::WindowFlags f) : QDialog(parent, f) {
+	ui.setupUi(this);
+	ui.tableModules->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+	ui.tableMemory->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+	ui.threadTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
 	threads_model_  = new ThreadsModel(this);
 	threads_filter_ = new QSortFilterProxyModel(this);
@@ -273,15 +283,7 @@ DialogProcessProperties::DialogProcessProperties(QWidget *parent) : QDialog(pare
 	threads_filter_->setSourceModel(threads_model_);
 	threads_filter_->setFilterCaseSensitivity(Qt::CaseInsensitive);
 
-	ui->threadTable->setModel(threads_filter_);
-}
-
-//------------------------------------------------------------------------------
-// Name: ~DialogProcessProperties
-// Desc:
-//------------------------------------------------------------------------------
-DialogProcessProperties::~DialogProcessProperties() {
-	delete ui;
+	ui.threadTable->setModel(threads_filter_);
 }
 
 //------------------------------------------------------------------------------
@@ -299,23 +301,24 @@ void DialogProcessProperties::updateGeneralPage() {
 	        const QString parent_exe     = parent ? parent->executable() : QString();
 
 	        const QList<QByteArray> args = process->arguments();
-			Q_UNUSED(args);
 
-			ui->editImage->setText(exe);
-			ui->editCommand->setText(QString());
-			ui->editCurrentDirectory->setText(cwd);
-			ui->editStarted->setText(process->start_time().toString("yyyy-MM-dd hh:mm:ss.z"));
+			ui.editImage->setText(exe);
+
+			// TODO(eteran): handle arguments with spaces
+			ui.editCommand->setText(arguments_to_string(args));
+			ui.editCurrentDirectory->setText(cwd);
+			ui.editStarted->setText(process->start_time().toString("yyyy-MM-dd hh:mm:ss.z"));
 			if(parent_pid) {
-				ui->editParent->setText(QString("%1 (%2)").arg(parent_exe).arg(parent_pid));
+				ui.editParent->setText(QString("%1 (%2)").arg(parent_exe).arg(parent_pid));
 			} else {
-				ui->editParent->setText(QString());
+				ui.editParent->setText(QString());
 			}
 		} else {
-			ui->editImage->setText(QString());
-			ui->editCommand->setText(QString());
-			ui->editCurrentDirectory->setText(QString());
-			ui->editStarted->setText(QString());
-			ui->editParent->setText(QString());
+			ui.editImage->setText(QString());
+			ui.editCommand->setText(QString());
+			ui.editCurrentDirectory->setText(QString());
+			ui.editStarted->setText(QString());
+			ui.editParent->setText(QString());
 		}
 	}
 }
@@ -326,19 +329,19 @@ void DialogProcessProperties::updateGeneralPage() {
 //------------------------------------------------------------------------------
 void DialogProcessProperties::updateModulePage() {
 
-	ui->tableModules->clearContents();
-	ui->tableModules->setRowCount(0);
+	ui.tableModules->clearContents();
+	ui.tableModules->setRowCount(0);
 	if(edb::v1::debugger_core) {
 		if(IProcess *process = edb::v1::debugger_core->process()) {
 			const QList<Module> modules = process->loaded_modules();
-			ui->tableModules->setSortingEnabled(false);
+			ui.tableModules->setSortingEnabled(false);
 			for(const Module &m: modules) {
-				const int row = ui->tableModules->rowCount();
-				ui->tableModules->insertRow(row);
-				ui->tableModules->setItem(row, 0, new QTableWidgetItem(edb::v1::format_pointer(m.base_address)));
-				ui->tableModules->setItem(row, 1, new QTableWidgetItem(m.name));
+				const int row = ui.tableModules->rowCount();
+				ui.tableModules->insertRow(row);
+				ui.tableModules->setItem(row, 0, new QTableWidgetItem(edb::v1::format_pointer(m.base_address)));
+				ui.tableModules->setItem(row, 1, new QTableWidgetItem(m.name));
 			}
-			ui->tableModules->setSortingEnabled(true);
+			ui.tableModules->setSortingEnabled(true);
 		}
 	}
 
@@ -350,26 +353,26 @@ void DialogProcessProperties::updateModulePage() {
 //------------------------------------------------------------------------------
 void DialogProcessProperties::updateMemoryPage() {
 
-	ui->tableMemory->clearContents();
-	ui->tableMemory->setRowCount(0);
+	ui.tableMemory->clearContents();
+	ui.tableMemory->setRowCount(0);
 
 	if(edb::v1::debugger_core) {
 		edb::v1::memory_regions().sync();
 		const QList<std::shared_ptr<IRegion>> regions = edb::v1::memory_regions().regions();
-		ui->tableMemory->setSortingEnabled(false);
+		ui.tableMemory->setSortingEnabled(false);
 
 		for(const std::shared_ptr<IRegion> &r: regions) {
-			const int row = ui->tableMemory->rowCount();
-			ui->tableMemory->insertRow(row);
-			ui->tableMemory->setItem(row, 0, new QTableWidgetItem(edb::v1::format_pointer(r->start()))); // address
-			ui->tableMemory->setItem(row, 1, new QTableWidgetItem(size_to_string(r->size())));           // size
-			ui->tableMemory->setItem(row, 2, new QTableWidgetItem(QString("%1%2%3")                      // protection
+			const int row = ui.tableMemory->rowCount();
+			ui.tableMemory->insertRow(row);
+			ui.tableMemory->setItem(row, 0, new QTableWidgetItem(edb::v1::format_pointer(r->start()))); // address
+			ui.tableMemory->setItem(row, 1, new QTableWidgetItem(size_to_string(r->size())));           // size
+			ui.tableMemory->setItem(row, 2, new QTableWidgetItem(QString("%1%2%3")                      // protection
 				.arg(r->readable() ? 'r' : '-')
 				.arg(r->writable() ? 'w' : '-')
 				.arg(r->executable() ? 'x' : '-')));
-			ui->tableMemory->setItem(row, 3, new QTableWidgetItem(r->name()));                           // name
+			ui.tableMemory->setItem(row, 3, new QTableWidgetItem(r->name()));                           // name
 		}
-		ui->tableMemory->setSortingEnabled(true);
+		ui.tableMemory->setSortingEnabled(true);
 	}
 }
 
@@ -388,9 +391,9 @@ void DialogProcessProperties::on_txtSearchEnvironment_textChanged(const QString 
 void DialogProcessProperties::updateEnvironmentPage(const QString &filter) {
 	// tableEnvironment
 
-	ui->tableEnvironment->clearContents();
-	ui->tableEnvironment->setSortingEnabled(false);
-	ui->tableEnvironment->setRowCount(0);
+	ui.tableEnvironment->clearContents();
+	ui.tableEnvironment->setSortingEnabled(false);
+	ui.tableEnvironment->setRowCount(0);
 
 	const QString lower_filter = filter.toLower();
 
@@ -407,10 +410,10 @@ void DialogProcessProperties::updateEnvironmentPage(const QString &filter) {
 				const QString env_value = env.mid(env.indexOf("=") + 1);
 
 				if(lower_filter.isEmpty() || env_name.contains(lower_filter, Qt::CaseInsensitive)) {
-					const int row = ui->tableEnvironment->rowCount();
-					ui->tableEnvironment->insertRow(row);
-					ui->tableEnvironment->setItem(row, 0, new QTableWidgetItem(env_name));
-			    	ui->tableEnvironment->setItem(row, 1, new QTableWidgetItem(env_value));
+					const int row = ui.tableEnvironment->rowCount();
+					ui.tableEnvironment->insertRow(row);
+					ui.tableEnvironment->setItem(row, 0, new QTableWidgetItem(env_name));
+					ui.tableEnvironment->setItem(row, 1, new QTableWidgetItem(env_value));
 				}
 
 				ptr += qstrlen(ptr) + 1;
@@ -420,7 +423,7 @@ void DialogProcessProperties::updateEnvironmentPage(const QString &filter) {
 	}
 #endif
 
-	ui->tableEnvironment->setSortingEnabled(true);
+	ui.tableEnvironment->setSortingEnabled(true);
 }
 
 //------------------------------------------------------------------------------
@@ -429,8 +432,8 @@ void DialogProcessProperties::updateEnvironmentPage(const QString &filter) {
 //------------------------------------------------------------------------------
 void DialogProcessProperties::updateHandles() {
 
-	ui->tableHandles->setSortingEnabled(false);
-	ui->tableHandles->setRowCount(0);
+	ui.tableHandles->setSortingEnabled(false);
+	ui.tableHandles->setRowCount(0);
 
 #ifdef Q_OS_LINUX
 	if(IProcess *process = edb::v1::debugger_core->process()) {
@@ -451,22 +454,22 @@ void DialogProcessProperties::updateHandles() {
 					symlink = tr("FIFO");
 				}
 
-				const int row = ui->tableHandles->rowCount();
-				ui->tableHandles->insertRow(row);
+				const int row = ui.tableHandles->rowCount();
+				ui.tableHandles->insertRow(row);
 
 
 				auto itemFD = new QTableWidgetItem;
 				itemFD->setData(Qt::DisplayRole, info.fileName().toUInt());
 
-				ui->tableHandles->setItem(row, 0, new QTableWidgetItem(type));
-				ui->tableHandles->setItem(row, 1, itemFD);
-				ui->tableHandles->setItem(row, 2, new QTableWidgetItem(symlink));
+				ui.tableHandles->setItem(row, 0, new QTableWidgetItem(type));
+				ui.tableHandles->setItem(row, 1, itemFD);
+				ui.tableHandles->setItem(row, 2, new QTableWidgetItem(symlink));
 			}
 		}
 	}
 #endif
 
-	ui->tableHandles->setSortingEnabled(true);
+	ui.tableHandles->setSortingEnabled(true);
 
 }
 
@@ -480,7 +483,7 @@ void DialogProcessProperties::showEvent(QShowEvent *) {
 	updateModulePage();
 	updateHandles();
 	updateThreads();
-	updateEnvironmentPage(ui->txtSearchEnvironment->text());
+	updateEnvironmentPage(ui.txtSearchEnvironment->text());
 }
 
 //------------------------------------------------------------------------------
@@ -508,7 +511,7 @@ void DialogProcessProperties::on_btnParent_clicked() {
 //------------------------------------------------------------------------------
 void DialogProcessProperties::on_btnImage_clicked() {
 	if(edb::v1::debugger_core) {
-		QFileInfo info(ui->editImage->text());
+		QFileInfo info(ui.editImage->text());
 		QDir dir = info.absoluteDir();
 		QDesktopServices::openUrl(QUrl(tr("file://%1").arg(dir.absolutePath()), QUrl::TolerantMode));
 	}
@@ -519,7 +522,7 @@ void DialogProcessProperties::on_btnImage_clicked() {
 // Desc:
 //------------------------------------------------------------------------------
 void DialogProcessProperties::on_btnRefreshEnvironment_clicked() {
-	updateEnvironmentPage(ui->txtSearchEnvironment->text());
+	updateEnvironmentPage(ui.txtSearchEnvironment->text());
 }
 
 //------------------------------------------------------------------------------

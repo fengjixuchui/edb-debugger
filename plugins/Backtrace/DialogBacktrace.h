@@ -20,22 +20,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define DIALOGBACKTRACE_H
 
 #include "CallStack.h"
-
+#include "ui_DialogBacktrace.h"
 #include <QDialog>
 #include <QTableWidget>
 
 namespace BacktracePlugin {
 
-namespace Ui {
-class DialogBacktrace;
-}
-
 class DialogBacktrace : public QDialog {
 	Q_OBJECT
 
 public:
-	explicit DialogBacktrace(QWidget *parent = nullptr);
-	~DialogBacktrace() override;
+	explicit DialogBacktrace(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+	~DialogBacktrace() override = default;
 
 protected:
 	void showEvent(QShowEvent *) override;
@@ -45,14 +41,13 @@ public Q_SLOTS:
 	void populate_table();
 
 private Q_SLOTS:
-	void on_pushButtonClose_clicked();
 	void on_tableWidgetCallStack_itemDoubleClicked(QTableWidgetItem *item);
 	void on_tableWidgetCallStack_cellClicked(int row, int column);
-	void on_pushButtonReturnTo_clicked();
 
 private:
-	Ui::DialogBacktrace *ui;
+	Ui::DialogBacktrace ui;
 	QTableWidget        *table_;
+	QPushButton *btnReturnTo_;
 };
 
 }

@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.0)
 project (edb CXX)
 
+enable_testing()
+
 if(NOT EXISTS "${PROJECT_SOURCE_DIR}/src/qhexview/.git")
 	message(SEND_ERROR "The git submodules are not available. Please run:\ngit submodule update --init --recursive")
 endif()
@@ -17,11 +19,16 @@ if(TARGET_COMPILER_GCC AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS 5.0)
 	message(FATAL_ERROR "Your g++ version is too old. At least 5.0 is required.")
 endif()
 
-option(ENABLE_ASAN      "Enable address santiziers")
-option(ENABLE_USAN      "Enable undefined santiziers")
-option(ENABLE_MSAN      "Enable memory santiziers")
-option(ENABLE_TSAN      "Enable thread santiziers")
-option(ENABLE_STL_DEBUG "Enable STL container debugging")
+option(ENABLE_ASAN        "Enable address santiziers")
+option(ENABLE_USAN        "Enable undefined santiziers")
+option(ENABLE_MSAN        "Enable memory santiziers")
+option(ENABLE_TSAN        "Enable thread santiziers")
+option(ENABLE_STL_DEBUG   "Enable STL container debugging")
+option(ENABLE_JUMBO_BUILD "Enable Jumbo builds for possibly faster compile times")
+
+if (ENABLE_JUMBO_BUILD)
+	include("Jumbo")
+endif()
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Choose the type of build." FORCE)
@@ -140,10 +147,54 @@ if (TARGET_COMPILER_CLANG OR TARGET_COMPILER_GCC)
 		set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -D_GLIBCXX_DEBUG")	
 	endif()
 	
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -pedantic -Wunused")
-	set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -W -Wall -pedantic -Wunused")
+    add_compile_options(
+		-W
+		-Wall
+		#-Wshadow
+		-Wnon-virtual-dtor
+		#-Wold-style-cast
+		-Wcast-align
+		-Wunused
+		-Woverloaded-virtual
+		-pedantic
+		#-Wconversion
+		#-Wsign-conversion
+		#-Wnull-dereference
+		-Wdouble-promotion
+		-Wformat=2
+		-Wno-unused-macros
+		-Wno-switch-enum
+		-Wno-unknown-pragmas
+    )
+
+    if(TARGET_COMPILER_CLANG)
+		add_compile_options(
+			#-Wshorten-64-to-32
+			-Wconditional-uninitialized
+			#-Wshadow-uncaptured-local
+			-Wmissing-prototypes
+			#-Wexit-time-destructors
+			#-Wglobal-constructors
+			-Wimplicit-fallthrough
+		)
+
+    elseif(TARGET_COMPILER_GCC)
+		add_compile_options(
+			#-Wuseless-cast
+			#-Wduplicated-cond
+			#-Wduplicated-branches
+			-Wlogical-op
+
+			#-Wsuggest-attribute=pure
+			#-Wsuggest-attribute=const
+			#-Wsuggest-attribute=noreturn
+			#-Wsuggest-final-types
+			#-Wsuggest-final-methods
+			-Wsuggest-override
+		)
+	endif()
 elseif(TARGET_COMPILER_MSVC)
-  add_definitions(-DUNICODE -D_UNICODE)
+	add_definitions(-DUNICODE -D_UNICODE -D_CRT_SECURE_NO_WARNINGS)
 endif()
 
 add_subdirectory(src)

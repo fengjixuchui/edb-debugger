@@ -14,9 +14,12 @@ add_library(${PluginName} SHARED
 	BinaryInfo.cpp
 	BinaryInfo.h
 	demangle.h
+	DialogRegions.cpp
+	DialogRegions.h
+	DialogRegions.ui
+	DialogHeader.ui
 	DialogHeader.cpp
 	DialogHeader.h
-	DialogHeader.ui
 	ELF32.cpp
 	ELF64.cpp
 	ELFXX.cpp
@@ -37,3 +40,8 @@ install (TARGETS ${PluginName} DESTINATION ${CMAKE_INSTALL_LIBDIR}/edb)
 set_property(TARGET ${PluginName} PROPERTY CXX_EXTENSIONS OFF)
 set_property(TARGET ${PluginName} PROPERTY CXX_STANDARD 14)
 set_property(TARGET ${PluginName} PROPERTY LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+set_property(TARGET ${PluginName} PROPERTY RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+
+if (ENABLE_JUMBO_BUILD)
+	enable_jumbo_build(${PluginName})
+endif()

@@ -222,7 +222,7 @@ static_assert(offsetof(X86XState, xmm_space) == 160, "XMM space should appear at
 static_assert(offsetof(X86XState, xcr0) == 464, "XCR0 should appear at offset 464");
 static_assert(offsetof(X86XState, ymmh_space) == 576, "YMM_H space should appear at offset 576");
 
-class PlatformState : public IState {
+class PlatformState final : public IState {
 	friend class DebuggerCore;
 	friend class PlatformThread;
 
@@ -258,9 +258,8 @@ public:
 	void set_instruction_pointer(edb::address_t value) override;
 	void set_register(const Register &reg) override;
 	void set_register(const QString &name, edb::reg_t value) override;
-	Register mmx_register(size_t n) const override;
-	Register xmm_register(size_t n) const override;
-	Register ymm_register(size_t n) const override;
+
+	Register arch_register(uint64_t type, size_t n) const override;
 	Register gp_register(size_t n) const override;
 
 	bool is64Bit() const {
@@ -326,6 +325,11 @@ public:
 	const std::array<const char *, MAX_GPR_COUNT> &GPRegNames() const {
 		return is64Bit() ? x86.GPReg64Names : x86.GPReg32Names;
 	}
+
+private:
+	Register mmx_register(size_t n) const ;
+	Register xmm_register(size_t n) const ;
+	Register ymm_register(size_t n) const ;
 
 private:
 	// The whole AVX* state. XMM and YMM registers are lower parts of ZMM ones.

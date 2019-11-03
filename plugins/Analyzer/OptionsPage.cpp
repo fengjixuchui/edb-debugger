@@ -19,46 +19,38 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "OptionsPage.h"
 #include <QSettings>
 
-#include "ui_OptionsPage.h"
-
 namespace AnalyzerPlugin {
 
 //------------------------------------------------------------------------------
 // Name: OptionsPage
 // Desc:
 //------------------------------------------------------------------------------
-OptionsPage::OptionsPage(QWidget *parent) : QWidget(parent), ui(new Ui::OptionsPage) {
-	ui->setupUi(this);
+OptionsPage::OptionsPage(QWidget *parent, Qt::WindowFlags f) : QWidget(parent, f)  {
+	ui.setupUi(this);
+	connect(ui.checkBox, &QCheckBox::toggled, this, &OptionsPage::checkBox_toggled);
 }
 
-//------------------------------------------------------------------------------
-// Name: ~OptionsPage
-// Desc:
-//------------------------------------------------------------------------------
-OptionsPage::~OptionsPage() {
-	delete ui;
-}
 
 //------------------------------------------------------------------------------
 // Name: showEvent
 // Desc:
 //------------------------------------------------------------------------------
 void OptionsPage::showEvent(QShowEvent *event) {
-	Q_UNUSED(event);
+	Q_UNUSED(event)
 
 	QSettings settings;
-	ui->checkBox->setChecked(settings.value("Analyzer/fuzzy_logic_functions.enabled", true).toBool());
+	ui.checkBox->setChecked(settings.value("Analyzer/fuzzy_logic_functions.enabled", true).toBool());
 }
 
 //------------------------------------------------------------------------------
-// Name: on_checkBox_toggled
+// Name: checkBox_toggled
 // Desc:
 //------------------------------------------------------------------------------
-void OptionsPage::on_checkBox_toggled(bool checked) {
-	Q_UNUSED(checked);
+void OptionsPage::checkBox_toggled(bool checked) {
+	Q_UNUSED(checked)
 
 	QSettings settings;
-	settings.setValue("Analyzer/fuzzy_logic_functions.enabled", ui->checkBox->isChecked());
+	settings.setValue("Analyzer/fuzzy_logic_functions.enabled", ui.checkBox->isChecked());
 }
 
 }

@@ -211,7 +211,7 @@ std::string printRegs(csh csh, const uint16_t *regsBuffer, std::size_t size) {
 		str << printReg(csh, regsBuffer[r]);
 	}
 
-	const auto string = str.str();
+	const std::string string = str.str();
 
 	if(string.empty()) {
 		return "(none)";
@@ -531,7 +531,7 @@ std::string printAccessMode(unsigned mode) {
 		str << toHex(mode);
 	}
 	
-	auto string = str.str();
+	const std::string string = str.str();
 	if (string.empty()) {
 		return "none";
 	}
@@ -540,7 +540,7 @@ std::string printAccessMode(unsigned mode) {
 }
 #endif
 
-InstructionDialog::InstructionDialog(QWidget *parent) : QDialog(parent) {
+InstructionDialog::InstructionDialog(QWidget *parent, Qt::WindowFlags f) : QDialog(parent, f) {
 
 	setWindowTitle("Instruction Inspector");
 	address = edb::v1::cpu_selected_address();

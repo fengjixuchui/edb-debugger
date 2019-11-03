@@ -37,7 +37,7 @@ namespace AnalyzerPlugin {
 
 class AnalyzerWidget;
 
-class Analyzer : public QObject, public IAnalyzer, public IPlugin {
+class Analyzer final : public QObject, public IAnalyzer, public IPlugin {
 	Q_OBJECT
 	Q_PLUGIN_METADATA(IID "edb.IPlugin/1.0")
 	Q_INTERFACES(IPlugin)
@@ -48,7 +48,7 @@ private:
 	struct RegionData;
 
 public:
-	Analyzer() = default;
+	explicit Analyzer(QObject *parent = nullptr);
 
 public:
     QMenu *menu(QWidget *parent = nullptr) override;
@@ -71,7 +71,6 @@ public:
 
 private:
 	bool find_containing_function(edb::address_t address, Function *function) const;
-	bool is_thunk(edb::address_t address) const;
 	bool will_return(edb::address_t address) const;
 	void bonus_entry_point(RegionData *data) const;
 	void bonus_main(RegionData *data) const;
@@ -82,8 +81,6 @@ private:
 	void do_analysis(const std::shared_ptr<IRegion> &region);
 	void ident_header(Analyzer::RegionData *data);
 	void invalidate_dynamic_analysis(const std::shared_ptr<IRegion> &region);
-	void set_function_types(FunctionMap *results);
-	void set_function_types_helper(Function &function) const;
 
 Q_SIGNALS:
 	void update_progress(int);

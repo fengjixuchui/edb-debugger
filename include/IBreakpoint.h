@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <exception>
 
 class breakpoint_creation_error : public std::exception {
-	const char *what() const noexcept {
+	const char *what() const noexcept override {
 		return "breakpoint_creation_error";
 	}
 };
@@ -57,9 +57,6 @@ public:
 	virtual const quint8* original_bytes() const = 0;
 	virtual size_t size() const = 0;
 	virtual TypeId type() const = 0;
-	/** number of bytes to go back to restart original
-		instruction after hitting the breakpoint */
-	virtual size_t rewind_size() const = 0;
 
 public:
 	virtual bool enable() = 0;

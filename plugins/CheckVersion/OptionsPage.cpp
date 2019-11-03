@@ -19,24 +19,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "OptionsPage.h"
 #include <QSettings>
 
-#include "ui_OptionsPage.h"
-
 namespace CheckVersionPlugin {
 
 //------------------------------------------------------------------------------
 // Name: OptionsPage
 // Desc:
 //------------------------------------------------------------------------------
-OptionsPage::OptionsPage(QWidget *parent) : QWidget(parent), ui(new Ui::OptionsPage) {
-	ui->setupUi(this);
-}
-
-//------------------------------------------------------------------------------
-// Name: ~OptionsPage
-// Desc:
-//------------------------------------------------------------------------------
-OptionsPage::~OptionsPage() {
-	delete ui;
+OptionsPage::OptionsPage(QWidget *parent, Qt::WindowFlags f) : QWidget(parent, f) {
+	ui.setupUi(this);
 }
 
 //------------------------------------------------------------------------------
@@ -44,10 +34,10 @@ OptionsPage::~OptionsPage() {
 // Desc:
 //------------------------------------------------------------------------------
 void OptionsPage::showEvent(QShowEvent *event) {
-	Q_UNUSED(event);
+	Q_UNUSED(event)
 
 	QSettings settings;
-	ui->checkBox->setChecked(settings.value("CheckVersion/check_on_start.enabled", true).toBool());
+	ui.checkBox->setChecked(settings.value("CheckVersion/check_on_start.enabled", true).toBool());
 }
 
 //------------------------------------------------------------------------------
@@ -55,10 +45,10 @@ void OptionsPage::showEvent(QShowEvent *event) {
 // Desc:
 //------------------------------------------------------------------------------
 void OptionsPage::on_checkBox_toggled(bool checked) {
-	Q_UNUSED(checked);
+	Q_UNUSED(checked)
 
 	QSettings settings;
-	settings.setValue("CheckVersion/check_on_start.enabled", ui->checkBox->isChecked());
+	settings.setValue("CheckVersion/check_on_start.enabled", ui.checkBox->isChecked());
 }
 
 }

@@ -47,14 +47,14 @@ long double readFloat(const QString &strInput, bool &ok) {
 	// We still do want the user to be able to enter common special values
 	long double value;
 
-	static std::array<std::uint8_t, 10> positiveInf{0, 0, 0, 0, 0, 0, 0, 0x80, 0xff, 0x7f};
-	static std::array<std::uint8_t, 10> negativeInf{0, 0, 0, 0, 0, 0, 0, 0x80, 0xff, 0xff};
-	static std::array<std::uint8_t, 10> positiveSNaN{0, 0, 0, 0, 0, 0, 0, 0x90, 0xff, 0x7f};
-	static std::array<std::uint8_t, 10> negativeSNaN{0, 0, 0, 0, 0, 0, 0, 0x90, 0xff, 0xff};
+	static const std::array<std::uint8_t, 16> positiveInf{0, 0, 0, 0, 0, 0, 0, 0x80, 0xff, 0x7f, 0, 0, 0, 0, 0, 0};
+	static const std::array<std::uint8_t, 16> negativeInf{0, 0, 0, 0, 0, 0, 0, 0x80, 0xff, 0xff, 0, 0, 0, 0, 0, 0};
+	static const std::array<std::uint8_t, 16> positiveSNaN{0, 0, 0, 0, 0, 0, 0, 0x90, 0xff, 0x7f, 0, 0, 0, 0, 0, 0};
+	static const std::array<std::uint8_t, 16> negativeSNaN{0, 0, 0, 0, 0, 0, 0, 0x90, 0xff, 0xff, 0, 0, 0, 0, 0, 0};
 
 	// Indefinite values are used for QNaN
-	static std::array<std::uint8_t, 10> positiveQNaN{0, 0, 0, 0, 0, 0, 0, 0xc0, 0xff, 0x7f};
-	static std::array<std::uint8_t, 10> negativeQNaN{0, 0, 0, 0, 0, 0, 0, 0xc0, 0xff, 0xff};
+	static const std::array<std::uint8_t, 16> positiveQNaN{0, 0, 0, 0, 0, 0, 0, 0xc0, 0xff, 0x7f, 0, 0, 0, 0, 0, 0};
+	static const std::array<std::uint8_t, 16> negativeQNaN{0, 0, 0, 0, 0, 0, 0, 0xc0, 0xff, 0xff, 0, 0, 0, 0, 0, 0};
 
 	if (str == "+snan" || str == "snan")
 		std::memcpy(&value, &positiveSNaN, sizeof(value));
@@ -76,7 +76,7 @@ long double readFloat(const QString &strInput, bool &ok) {
 }
 }
 
-DialogEditFPU::DialogEditFPU(QWidget *parent) : QDialog(parent), floatEntry(new ODbgRegisterView::Float80Edit(this)), hexEntry(new QLineEdit(this)) {
+DialogEditFPU::DialogEditFPU(QWidget *parent, Qt::WindowFlags f) : QDialog(parent, f), floatEntry(new ODbgRegisterView::Float80Edit(this)), hexEntry(new QLineEdit(this)) {
 
 	setWindowTitle(tr("Modify Register"));
 	setModal(true);
@@ -151,15 +151,15 @@ void DialogEditFPU::onHexEdited(const QString &input) {
 	auto       dest      = reinterpret_cast<unsigned char *>(&value_);
 
 	for (std::size_t i = 0; i < sizeof(value_); ++i) {
-		dest[i]        = source[sizeof(value_) - i - 1];
+		dest[i] = source[sizeof(value_) - i - 1];
 	}
 
 	updateFloatEntry();
 }
 
 void DialogEditFPU::onFloatEdited(const QString &str) {
-	bool       ok;
-	const auto value = readFloat(str, ok);
+	bool ok;
+	const long double value = readFloat(str, ok);
 
 	if (ok) {
 		value_ = edb::value80(value);

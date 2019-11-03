@@ -89,7 +89,7 @@ const size_t PageSize = 0x1000;
  * @brief disable_aslr
  */
 void disable_aslr() {
-	const auto current = ::personality(UINT32_MAX);
+	const int current = ::personality(UINT32_MAX);
 	// This shouldn't fail, but let's at least perror if it does anyway
 	if(current == -1) {
 		perror("Failed to get current personality");
@@ -217,7 +217,7 @@ DebuggerCore::DebuggerCore()
 //------------------------------------------------------------------------------
 bool DebuggerCore::has_extension(quint64 ext) const {
 	
-	Q_UNUSED(ext);
+	Q_UNUSED(ext)
 	
 #if defined(EDB_X86) || defined(EDB_X86_64)
 	static constexpr auto mmxHash = edb::string_hash("MMX");
@@ -418,7 +418,7 @@ long DebuggerCore::ptraceOptions() const {
 // Desc:
 //------------------------------------------------------------------------------
 void DebuggerCore::handle_thread_exit(edb::tid_t tid, int status) {
-	Q_UNUSED(status);
+	Q_UNUSED(status)
 
 	threads_.remove(tid);
 	waited_threads_.remove(tid);
@@ -430,7 +430,7 @@ void DebuggerCore::handle_thread_exit(edb::tid_t tid, int status) {
 //------------------------------------------------------------------------------
 std::shared_ptr<IDebugEvent> DebuggerCore::handle_thread_create_event(edb::tid_t tid, int status) {
 
-	Q_UNUSED(status);
+	Q_UNUSED(status)
 
 	unsigned long message;
 	if(ptrace_get_event_message(tid, &message)) {
@@ -848,8 +848,11 @@ Status DebuggerCore::open(const QString &path, const QString &cwd, const QList<Q
     lastMeansOfCapture = MeansOfCapture::Launch;
 
 	static constexpr std::size_t sharedMemSize = 4096;
-	const auto sharedMem = static_cast<QChar*>(::mmap(nullptr, sharedMemSize, PROT_READ|PROT_WRITE,MAP_SHARED|MAP_ANONYMOUS, -1, 0));
-	std::memset(sharedMem, 0, sharedMemSize);
+
+	void *const ptr = ::mmap(nullptr, sharedMemSize, PROT_READ|PROT_WRITE,MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+	const auto sharedMem = static_cast<QChar*>(ptr);
+
+	std::memset(ptr, 0, sharedMemSize);
 
 	switch(pid_t pid = fork()) {
 	case 0:
@@ -865,9 +868,9 @@ Status DebuggerCore::open(const QString &path, const QString &cwd, const QList<Q
 			FILE *const std_in  = freopen(qPrintable(tty), "r+b", stdin);
 			FILE *const std_err = freopen(qPrintable(tty), "r+b", stderr);
 
-			Q_UNUSED(std_out);
-			Q_UNUSED(std_in);
-			Q_UNUSED(std_err);
+			Q_UNUSED(std_out)
+			Q_UNUSED(std_in)
+			Q_UNUSED(std_err)
 		}
 
 		if(edb::v1::config().disableASLR) {
@@ -1158,6 +1161,17 @@ QString DebuggerCore::exceptionName(qlonglong value) {
  */
 qlonglong DebuggerCore::exceptionValue(const QString &name) {
 	return Unix::exceptionValue(name);
+}
+
+uint8_t DebuggerCore::nopFillByte() const {
+#if defined EDB_X86 || defined EDB_X86_64
+	return 0x90;
+#elif defined EDB_ARM32 || defined EDB_ARM64
+	// TODO(eteran): does this concept even make sense for a multi-byte instruction encoding?
+	return 0x00;
+#else
+	#error "Unsupported Architecture"
+#endif
 }
 
 }

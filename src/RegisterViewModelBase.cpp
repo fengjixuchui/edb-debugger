@@ -49,12 +49,16 @@ T1 *checked_cast(T2 object) {
 
 namespace RegisterViewModelBase {
 
+// Sets register with name `name` to value `value`
+// Returns whether it succeeded
+// If succeeded, `resultingValue` is set to what the function got back after setting
+// `resultingValue` can differ from `value` if e.g. the kernel doesn't allow to flip some
+// bits of the register, like EFLAGS on x86.
 template <typename T>
 bool setDebuggeeRegister(const QString &name, const T &value, T &resultingValue) {
 
-	if (auto core = edb::v1::debugger_core) {
-
-
+	if (IDebugger *core = edb::v1::debugger_core) {
+	
 		IProcess *process = core->process();
 		Q_ASSERT(process);
 
@@ -98,13 +102,6 @@ bool setDebuggeeRegister(const QString &name, const T &value, T &resultingValue)
 
 	return false;
 }
-
-template bool setDebuggeeRegister<edb::value16> (const QString &name, const edb::value16  &value, edb::value16  &resultingValue);
-template bool setDebuggeeRegister<edb::value32> (const QString &name, const edb::value32  &value, edb::value32  &resultingValue);
-template bool setDebuggeeRegister<edb::value64> (const QString &name, const edb::value64  &value, edb::value64  &resultingValue);
-template bool setDebuggeeRegister<edb::value80> (const QString &name, const edb::value80  &value, edb::value80  &resultingValue);
-template bool setDebuggeeRegister<edb::value128>(const QString &name, const edb::value128 &value, edb::value128 &resultingValue);
-template bool setDebuggeeRegister<edb::value256>(const QString &name, const edb::value256 &value, edb::value256 &resultingValue);
 
 RegisterViewItem *getItem(const QModelIndex &index) {
 	if (!index.isValid()) {
@@ -385,7 +382,7 @@ QVariant Model::data(const QModelIndex &index, int role) const {
 		return {};
 
 	case ValueAsRegisterRole:
-		if (auto core = edb::v1::debugger_core) {
+		if (IDebugger *core = edb::v1::debugger_core) {
 			const auto name = index.sibling(index.row(), NAME_COLUMN).data().toString();
 			if (name.isEmpty()) {
 				return {};
@@ -430,7 +427,7 @@ bool Model::setData(const QModelIndex &index, const QVariant &data, int role) {
 		assert(index.isValid());
 
 		const auto name = index.sibling(index.row(), NAME_COLUMN).data().toString();
-		Q_UNUSED(name);
+		Q_UNUSED(name)
 
 		const auto regVal = data.value<Register>();
 		assert(name.toLower() == regVal.name().toLower());
@@ -928,7 +925,7 @@ QVariant SIMDFormatItem<StoredType, SizingType>::data(int column) const {
 
 template <class StoredType, class SizingType>
 QByteArray SIMDFormatItem<StoredType, SizingType>::rawValue() const {
-	return static_cast<RegisterViewItem *>(this->parent())->rawValue();
+	return this->parent()->rawValue();
 }
 
 template <>
@@ -941,7 +938,7 @@ int SIMDFormatItem<edb::value80, edb::value80>::valueMaxLength() const {
 	case NumberDisplayMode::Float:
 		return maxPrintedLength<long double>();
 	default:
-		EDB_PRINT_AND_DIE("Unexpected format: ", (long)format_);
+		EDB_PRINT_AND_DIE("Unexpected format: ", static_cast<long>(format_));
 	}
 }
 
@@ -1141,7 +1138,7 @@ QVariant SIMDSizedElementsContainer<StoredType>::data(int column) const {
 
 template <class StoredType>
 QByteArray SIMDSizedElementsContainer<StoredType>::rawValue() const {
-	return static_cast<RegisterViewItem *>(this->parent())->rawValue();
+	return this->parent()->rawValue();
 }
 
 template <class StoredType>

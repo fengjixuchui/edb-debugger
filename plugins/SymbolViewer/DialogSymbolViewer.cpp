@@ -27,8 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QStringListModel>
 #include <QSortFilterProxyModel>
 #include <QMenu>
-
-#include "ui_DialogSymbolViewer.h"
+#include <QPushButton>
 
 namespace SymbolViewerPlugin {
 
@@ -36,28 +35,29 @@ namespace SymbolViewerPlugin {
 // Name: DialogSymbolViewer
 // Desc:
 //------------------------------------------------------------------------------
-DialogSymbolViewer::DialogSymbolViewer(QWidget *parent) : QDialog(parent), ui(new Ui::DialogSymbolViewer) {
-	ui->setupUi(this);
+DialogSymbolViewer::DialogSymbolViewer(QWidget *parent, Qt::WindowFlags f) : QDialog(parent, f)  {
+	ui.setupUi(this);
 
-	ui->listView->setContextMenuPolicy(Qt::CustomContextMenu);
+	btnRefresh_ = new QPushButton(QIcon::fromTheme("view-refresh"), tr("Refresh"));
+	connect(btnRefresh_, &QPushButton::clicked, this, [this]() {
+		btnRefresh_->setEnabled(false);
+		do_find();
+		btnRefresh_->setEnabled(true);
+	});
+
+	ui.buttonBox->addButton(btnRefresh_, QDialogButtonBox::ActionRole);
+
+	ui.listView->setContextMenuPolicy(Qt::CustomContextMenu);
 
 	model_        = new QStringListModel(this);
 	filter_model_ = new QSortFilterProxyModel(this);
 
 	filter_model_->setFilterKeyColumn(0);
 	filter_model_->setSourceModel(model_);
-	ui->listView->setModel(filter_model_);
-	ui->listView->setUniformItemSizes(true);
+	ui.listView->setModel(filter_model_);
+	ui.listView->setUniformItemSizes(true);
 
-	connect(ui->txtSearch, &QLineEdit::textChanged, filter_model_, &QSortFilterProxyModel::setFilterFixedString);
-}
-
-//------------------------------------------------------------------------------
-// Name: ~DialogSymbolViewer
-// Desc:
-//------------------------------------------------------------------------------
-DialogSymbolViewer::~DialogSymbolViewer() {
-	delete ui;
+	connect(ui.txtSearch, &QLineEdit::textChanged, filter_model_, &QSortFilterProxyModel::setFilterFixedString);
 }
 
 //------------------------------------------------------------------------------
@@ -85,7 +85,7 @@ void DialogSymbolViewer::on_listView_doubleClicked(const QModelIndex &index) {
 //------------------------------------------------------------------------------
 void DialogSymbolViewer::on_listView_customContextMenuRequested(const QPoint &pos) {
 
-	const QModelIndex index = ui->listView->indexAt(pos);
+	const QModelIndex index = ui.listView->indexAt(pos);
 	if(index.isValid()) {
 
 		const QString s = index.data().toString();
@@ -98,13 +98,12 @@ void DialogSymbolViewer::on_listView_customContextMenuRequested(const QPoint &po
 			QAction *const action3 = menu.addAction(tr("&Follow In Dump (New Tab)"), this, SLOT(mnuFollowInDumpNewTab()));
 			QAction *const action4 = menu.addAction(tr("&Follow In Stack"),          this, SLOT(mnuFollowInStack()));
 
-            // TODO(eteran): add -> operator to Result, this is hidious...
-			action1->setData((*addr).toQVariant());
-			action2->setData((*addr).toQVariant());
-			action3->setData((*addr).toQVariant());
-			action4->setData((*addr).toQVariant());
+			action1->setData(addr->toQVariant());
+			action2->setData(addr->toQVariant());
+			action3->setData(addr->toQVariant());
+			action4->setData(addr->toQVariant());
 
-			menu.exec(ui->listView->mapToGlobal(pos));
+			menu.exec(ui.listView->mapToGlobal(pos));
 		}
 	}
 }
@@ -169,21 +168,13 @@ void DialogSymbolViewer::do_find() {
 }
 
 //------------------------------------------------------------------------------
-// Name: on_btnRefresh_clicked
-// Desc:
-//------------------------------------------------------------------------------
-void DialogSymbolViewer::on_btnRefresh_clicked() {
-	ui->btnRefresh->setEnabled(false);
-	do_find();
-	ui->btnRefresh->setEnabled(true);
-}
-
-//------------------------------------------------------------------------------
 // Name: showEvent
 // Desc:
 //------------------------------------------------------------------------------
 void DialogSymbolViewer::showEvent(QShowEvent *) {
-	on_btnRefresh_clicked();
+	btnRefresh_->setEnabled(false);
+	do_find();
+	btnRefresh_->setEnabled(true);
 }
 
 }

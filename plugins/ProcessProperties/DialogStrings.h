@@ -19,26 +19,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef DIALOGSTRINGS_20061101_H_
 #define DIALOGSTRINGS_20061101_H_
 
-#include <QDialog>
 #include "Types.h"
+#include "ui_DialogStrings.h"
+#include <QDialog>
 
 class QSortFilterProxyModel;
 class QListWidgetItem;
 
 namespace ProcessPropertiesPlugin {
 
-namespace Ui { class DialogStrings; }
-
 class DialogStrings : public QDialog {
 	Q_OBJECT
 
 public:
-    explicit DialogStrings(QWidget *parent = nullptr);
-    ~DialogStrings() override;
-
-public Q_SLOTS:
-	void on_btnFind_clicked();
-	void on_listWidget_itemDoubleClicked(QListWidgetItem *);
+    explicit DialogStrings(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+	~DialogStrings() override = default;
 
 private:
     void showEvent(QShowEvent *event) override;
@@ -47,8 +42,9 @@ private:
 	void do_find();
 
 private:
-	 Ui::DialogStrings *const ui;
-	 QSortFilterProxyModel *  filter_model_;
+	 Ui::DialogStrings ui;
+	 QSortFilterProxyModel *filter_model_;
+	 QPushButton *btnFind_;
 };
 
 }

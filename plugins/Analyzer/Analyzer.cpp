@@ -52,16 +52,45 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <functional>
 #include <cstring>
 
-#ifdef QT_CONCURRENT_LIB
-#include <QtConcurrent>
-#endif
-
-
 namespace AnalyzerPlugin {
 
 namespace {
 
 constexpr int MIN_REFCOUNT = 2;
+
+//------------------------------------------------------------------------------
+// Name: is_thunk
+// Desc: basically returns true if the first instruction of the function is a
+//       jmp
+//------------------------------------------------------------------------------
+bool is_thunk(edb::address_t address) {
+
+	quint8 buf[edb::Instruction::MAX_SIZE];
+	if(const int buf_size = edb::v1::get_instruction_bytes(address, buf)) {
+		const edb::Instruction inst(buf, buf + buf_size, address);
+		return is_unconditional_jump(inst);
+	}
+
+	return false;
+}
+
+//------------------------------------------------------------------------------
+// Name: set_function_types
+// Desc:
+//------------------------------------------------------------------------------
+void set_function_types(IAnalyzer::FunctionMap *results) {
+
+	Q_ASSERT(results);
+
+	// give bonus if we have a symbol for the address
+	std::for_each(results->begin(), results->end(), [](Function &function) {
+		if(is_thunk(function.entry_address())) {
+			function.set_type(Function::FUNCTION_THUNK);
+		} else {
+			function.set_type(Function::FUNCTION_STANDARD);
+		}
+	});
+}
 
 //------------------------------------------------------------------------------
 // Name: module_entry_point
@@ -70,12 +99,20 @@ constexpr int MIN_REFCOUNT = 2;
 edb::address_t module_entry_point(const std::shared_ptr<IRegion> &region) {
 
 	edb::address_t entry = 0;
-	if(auto binary_info = edb::v1::get_binary_info(region)) {
+	if(std::unique_ptr<IBinary> binary_info = edb::v1::get_binary_info(region)) {
 		entry = binary_info->entry_point();
 	}
 
 	return entry;
 }
+
+}
+
+/**
+ * @brief Analyzer::Analyzer
+ * @param parent
+ */
+Analyzer::Analyzer(QObject *parent) : QObject(parent) {
 
 }
 
@@ -198,8 +235,8 @@ void Analyzer::show_xrefs() {
 	for(const RegionData &data : analysis_info_) {
 		for(const BasicBlock &bb : data.basic_blocks) {	
 			std::vector<std::pair<edb::address_t, edb::address_t>> refs = bb.refs();
-			for(auto it = refs.begin(); it != refs.end(); ++it) {
 			
+			for(auto it = refs.begin(); it != refs.end(); ++it) {
 				if(it->second == address) {					
 					dialog->addReference(*it);
 				}	
@@ -270,7 +307,7 @@ QList<QAction *> Analyzer::cpu_context_menu() {
 	connect(action_goto_function_end,   &QAction::triggered, this, &Analyzer::goto_function_end);
 	connect(action_mark_function_start, &QAction::triggered, this, &Analyzer::mark_function_start);
 	connect(action_xrefs,               &QAction::triggered, this, &Analyzer::show_xrefs);
-	
+
 	ret << action_find << action_goto_function_start << action_goto_function_end << action_mark_function_start << action_xrefs;
 
 	return ret;
@@ -347,60 +384,11 @@ void Analyzer::bonus_marked_functions(RegionData *data) {
 }
 
 //------------------------------------------------------------------------------
-// Name: is_thunk
-// Desc: basically returns true if the first instruction of the function is a
-//       jmp
-//------------------------------------------------------------------------------
-bool Analyzer::is_thunk(edb::address_t address) const {
-
-	quint8 buf[edb::Instruction::MAX_SIZE];
-	if(const int buf_size = edb::v1::get_instruction_bytes(address, buf)) {
-		const edb::Instruction inst(buf, buf + buf_size, address);
-		return is_unconditional_jump(inst);
-	}
-
-	return false;
-}
-
-//------------------------------------------------------------------------------
-// Name: set_function_types_helper
-// Desc:
-//------------------------------------------------------------------------------
-void Analyzer::set_function_types_helper(Function &function) const {
-
-	if(is_thunk(function.entry_address())) {
-		function.set_type(Function::FUNCTION_THUNK);
-	} else {
-		function.set_type(Function::FUNCTION_STANDARD);
-	}
-}
-
-//------------------------------------------------------------------------------
-// Name: set_function_types
-// Desc:
-//------------------------------------------------------------------------------
-void Analyzer::set_function_types(FunctionMap *results) {
-
-	Q_ASSERT(results);
-
-	// give bonus if we have a symbol for the address
-#if defined(QT_CONCURRENT_LIB)
-	QtConcurrent::blockingMap(*results, [this](Function &function) {
-		set_function_types_helper(function);
-	});
-#else
-	std::for_each(results->begin(), results->end(), [this](Function &function) {
-		set_function_types_helper(function);
-	});
-#endif
-}
-
-//------------------------------------------------------------------------------
 // Name: ident_header
 // Desc:
 //------------------------------------------------------------------------------
 void Analyzer::ident_header(Analyzer::RegionData *data) {
-	Q_UNUSED(data);
+	Q_UNUSED(data)
 }
 
 //------------------------------------------------------------------------------
@@ -464,7 +452,7 @@ void Analyzer::collect_functions(Analyzer::RegionData *data) {
 							// note the destination and move on
 							// we special case some simple things.
 							// also this is an opportunity to find call tables.
-							const auto op = inst->operand(0);
+							const edb::Operand op = inst->operand(0);
 							if(is_immediate(op)) {
 								const edb::address_t ea = op->imm;
 
@@ -490,11 +478,10 @@ void Analyzer::collect_functions(Analyzer::RegionData *data) {
 								// to see if we can know what the target is
 							}
 
-
 						} else if(is_unconditional_jump(*inst)) {
 
 							Q_ASSERT(inst->operand_count() >= 1);
-							const auto op = inst->operand(0);
+							const edb::Operand op = inst->operand(0);
 
 							// TODO(eteran): we need some heuristic for detecting when this is
 							//               a call/ret -> jmp optimization
@@ -516,7 +503,7 @@ void Analyzer::collect_functions(Analyzer::RegionData *data) {
 						} else if(is_conditional_jump(*inst)) {
 
 							Q_ASSERT(inst->operand_count() == 1);
-							const auto op = inst->operand(0);
+							const edb::Operand op = inst->operand(0);
 
 							if(is_immediate(op)) {
 							
@@ -595,7 +582,7 @@ void Analyzer::collect_fuzzy_functions(RegionData *data) {
 					// note the destination and move on
 					// we special case some simple things.
 					// also this is an opportunity to find call tables.
-					const auto op = inst[0];
+					const edb::Operand op = inst[0];
 					if(is_immediate(op)) {
 						const edb::address_t ea = op->imm;
 
@@ -789,8 +776,8 @@ bool Analyzer::for_funcs_in_range(const edb::address_t start, const edb::address
 		auto it = funcs.lowerBound(start - 4096);
 
 		while (it != funcs.end()) {
-			auto f_start = it->entry_address();
-			auto f_end = it->end_address();
+			edb::address_t f_start = it->entry_address();
+			edb::address_t f_end = it->end_address();
 
 			// Only works if FunctionMap is a QMap
 			if (f_start > end) {

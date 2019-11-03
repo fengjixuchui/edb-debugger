@@ -25,13 +25,10 @@ class QLineEdit;
 class QByteArray;
 
 class DialogOpenProgram : public QFileDialog {
-	Q_OBJECT // This also enables QFileDialog::DontUseNativeDialog, so that we get Qt dialog on any platform
+	Q_OBJECT
 
 public:
-	DialogOpenProgram(QWidget* parent=0,
-					  const QString& caption=QString(),
-					  const QString& directory=QString(),
-					  const QString& filter=QString());
+	DialogOpenProgram(QWidget* parent = nullptr, const QString &caption = QString(), const QString &directory = QString(), const QString &filter = QString());
 	
 public:				  
 	QList<QByteArray> arguments() const;

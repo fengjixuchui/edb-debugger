@@ -33,3 +33,8 @@ install (TARGETS ${PluginName} DESTINATION ${CMAKE_INSTALL_LIBDIR}/edb)
 set_property(TARGET ${PluginName} PROPERTY CXX_EXTENSIONS OFF)
 set_property(TARGET ${PluginName} PROPERTY CXX_STANDARD 14)
 set_property(TARGET ${PluginName} PROPERTY LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+set_property(TARGET ${PluginName} PROPERTY RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+
+if (ENABLE_JUMBO_BUILD)
+	enable_jumbo_build(${PluginName})
+endif()

@@ -61,7 +61,7 @@ std::unique_ptr<IState> PlatformState::clone() const {
  * @return
  */
 QString PlatformState::flags_to_string() const {
-	return flags_to_string(gp_register(GPR::CPSR));
+	return flags_to_string(flags_register().valueAsInteger());
 }
 
 /**
@@ -95,7 +95,7 @@ auto PlatformState::findGPR(QString const &name) const -> decltype(gpr.GPRegName
  * @return
  */
 Register PlatformState::value(const QString &reg) const {
-	const auto name = reg.toLower();
+	const QString name = reg.toLower();
 	if (name == "cpsr") {
 		return flags_register();
 	}
@@ -252,7 +252,7 @@ void PlatformState::set_register(const Register &reg) {
 		return;
 	}
 
-	const auto name = reg.name().toLower();
+	const QString name = reg.name().toLower();
 	if (name == "cpsr") {
 		set_flags(reg.value<edb::reg_t>());
 		return;
@@ -292,8 +292,9 @@ void PlatformState::set_register(const QString &name, edb::reg_t value) {
  */
 Register PlatformState::gp_register(size_t n) const {
 #ifdef EDB_ARM32
-	assert(n < GPR::GPRegNames.size());
-	return make_Register<32>(gpr.GPRegNames[n].front(), gpr.GPRegs[n], Register::TYPE_GPR);
+	if(n < GPR::GPRegNames.size())
+		return make_Register<32>(gpr.GPRegNames[n].front(), gpr.GPRegs[n], Register::TYPE_GPR);
+	return Register();
 #else
 	return Register(); // FIXME: stub
 #endif

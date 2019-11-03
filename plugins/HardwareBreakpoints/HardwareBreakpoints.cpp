@@ -42,41 +42,57 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace HardwareBreakpointsPlugin {
 
-//------------------------------------------------------------------------------
-// Name: HardwareBreakpoints
-// Desc:
-//------------------------------------------------------------------------------
+/**
+ * @brief HardwareBreakpoints::HardwareBreakpoints
+ * @param parent
+ */
 HardwareBreakpoints::HardwareBreakpoints(QObject *parent) : QObject(parent) {
+}
+
+/**
+ * @brief HardwareBreakpoints::private_init
+ */
+void HardwareBreakpoints::private_init() {
 
 	auto dialog = new DialogHWBreakpoints(edb::v1::debugger_ui);
 	dialog_ = dialog;
 
 	// indexed access to members for simplicity later
-	enabled_[Register1] = dialog->ui->chkBP1;
-	enabled_[Register2] = dialog->ui->chkBP2;
-	enabled_[Register3] = dialog->ui->chkBP3;
-	enabled_[Register4] = dialog->ui->chkBP4;
+	enabled_[Register1] = dialog->ui.chkBP1;
+	enabled_[Register2] = dialog->ui.chkBP2;
+	enabled_[Register3] = dialog->ui.chkBP3;
+	enabled_[Register4] = dialog->ui.chkBP4;
 
-	types_[Register1] = dialog->ui->cmbType1;
-	types_[Register2] = dialog->ui->cmbType2;
-	types_[Register3] = dialog->ui->cmbType3;
-	types_[Register4] = dialog->ui->cmbType4;
+	types_[Register1] = dialog->ui.cmbType1;
+	types_[Register2] = dialog->ui.cmbType2;
+	types_[Register3] = dialog->ui.cmbType3;
+	types_[Register4] = dialog->ui.cmbType4;
 
-	sizes_[Register1] = dialog->ui->cmbSize1;
-	sizes_[Register2] = dialog->ui->cmbSize2;
-	sizes_[Register3] = dialog->ui->cmbSize3;
-	sizes_[Register4] = dialog->ui->cmbSize4;
+	sizes_[Register1] = dialog->ui.cmbSize1;
+	sizes_[Register2] = dialog->ui.cmbSize2;
+	sizes_[Register3] = dialog->ui.cmbSize3;
+	sizes_[Register4] = dialog->ui.cmbSize4;
 
-	addresses_[Register1] = dialog->ui->txtBP1;
-	addresses_[Register2] = dialog->ui->txtBP2;
-	addresses_[Register3] = dialog->ui->txtBP3;
-	addresses_[Register4] = dialog->ui->txtBP4;
+	addresses_[Register1] = dialog->ui.txtBP1;
+	addresses_[Register2] = dialog->ui.txtBP2;
+	addresses_[Register3] = dialog->ui.txtBP3;
+	addresses_[Register4] = dialog->ui.txtBP4;
+
+	edb::v1::add_debug_event_handler(this);
 }
 
-//------------------------------------------------------------------------------
-// Name: menu
-// Desc:
-//------------------------------------------------------------------------------
+/**
+ * @brief HardwareBreakpoints::private_fini
+ */
+void HardwareBreakpoints::private_fini() {
+	edb::v1::remove_debug_event_handler(this);
+}
+
+/**
+ * @brief HardwareBreakpoints::menu
+ * @param parent
+ * @return
+ */
 QMenu *HardwareBreakpoints::menu(QWidget *parent) {
 
 	Q_ASSERT(parent);
@@ -89,10 +105,9 @@ QMenu *HardwareBreakpoints::menu(QWidget *parent) {
 	return menu_;
 }
 
-//------------------------------------------------------------------------------
-// Name: setupBreakpoints
-// Desc:
-//------------------------------------------------------------------------------
+/**
+ * @brief HardwareBreakpoints::setupBreakpoints
+ */
 void HardwareBreakpoints::setupBreakpoints() {
 
 	if(IProcess *process = edb::v1::debugger_core->process()) {
@@ -158,10 +173,6 @@ void HardwareBreakpoints::setupBreakpoints() {
 				}
 			}
 
-			// we want to be enabled, if we aren't already hooked,
-			// hook it
-			edb::v1::add_debug_event_handler(this);
-
 			for(std::shared_ptr<IThread> &thread : process->threads()) {
 				State state;
 				thread->get_state(&state);
@@ -192,8 +203,6 @@ void HardwareBreakpoints::setupBreakpoints() {
 				thread->set_state(state);
 			}
 
-			// we want to be disabled and we have hooked, so unhook
-			edb::v1::remove_debug_event_handler(this);
 		}
 	}
 
@@ -360,9 +369,6 @@ QList<QAction *> HardwareBreakpoints::cpu_context_menu() {
 // Desc:
 //------------------------------------------------------------------------------
 void HardwareBreakpoints::setExecuteBP(int index, bool inUse) {
-	// we want to be enabled, if we aren't already hooked,
-	// hook it
-	edb::v1::add_debug_event_handler(this);
 
 	if(IProcess *process = edb::v1::debugger_core->process()) {
 
@@ -399,9 +405,6 @@ void HardwareBreakpoints::setExecuteBP(int index, bool inUse) {
 // Desc:
 //------------------------------------------------------------------------------
 void HardwareBreakpoints::setWriteBP(int index, bool inUse, edb::address_t address, size_t size) {
-	// we want to be enabled, if we aren't already hooked,
-	// hook it
-	edb::v1::add_debug_event_handler(this);
 
 	if(IProcess *process = edb::v1::debugger_core->process()) {
 
@@ -454,9 +457,6 @@ void HardwareBreakpoints::setWriteBP(int index, bool inUse, edb::address_t addre
 // Desc:
 //------------------------------------------------------------------------------
 void HardwareBreakpoints::setReadWriteBP(int index, bool inUse, edb::address_t address, size_t size) {
-	// we want to be enabled, if we aren't already hooked,
-	// hook it
-	edb::v1::add_debug_event_handler(this);
 
 	if(IProcess *process = edb::v1::debugger_core->process()) {
 

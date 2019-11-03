@@ -48,10 +48,10 @@ struct elf32_model : elf_model<32> {
 
 	static constexpr size_t plt_entry_size = 0x10;
 
-	static uint32_t elf_r_sym(uint32_t x)  { return ELF32_R_SYM(x); }
-	static uint32_t elf_r_type(uint32_t x) { return ELF32_R_TYPE(x); }
-	static uint8_t elf_st_type(uint8_t x)  { return ELF32_ST_TYPE(x); }
-	static uint8_t elf_st_bind(uint8_t x)  { return ELF32_ST_BIND(x); }
+	static constexpr uint32_t elf_r_sym(uint32_t x)  { return ELF32_R_SYM(x); }
+	static constexpr uint32_t elf_r_type(uint32_t x) { return ELF32_R_TYPE(x); }
+	static constexpr uint8_t elf_st_type(uint8_t x)  { return ELF32_ST_TYPE(x); }
+	static constexpr uint8_t elf_st_bind(uint8_t x)  { return ELF32_ST_BIND(x); }
 
 	struct symbol {
 		elf_addr address;
@@ -77,10 +77,10 @@ struct elf64_model : elf_model<64> {
 
 	static constexpr size_t plt_entry_size = 0x10;
 
-	static uint64_t elf_r_sym(uint64_t x)  { return ELF64_R_SYM(x); }
-	static uint64_t elf_r_type(uint64_t x) { return ELF64_R_TYPE(x); }
-	static uint8_t elf_st_type(uint8_t x)  { return ELF64_ST_TYPE(x); }
-	static uint8_t elf_st_bind(uint8_t x)  { return ELF64_ST_BIND(x); }
+	static constexpr uint64_t elf_r_sym(uint64_t x)  { return ELF64_R_SYM(x); }
+	static constexpr uint64_t elf_r_type(uint64_t x) { return ELF64_R_TYPE(x); }
+	static constexpr uint8_t elf_st_type(uint8_t x)  { return ELF64_ST_TYPE(x); }
+	static constexpr uint8_t elf_st_bind(uint8_t x)  { return ELF64_ST_BIND(x); }
 
 	struct symbol {
 		elf_addr address;
@@ -176,7 +176,7 @@ the symbol is local; if uppercase, the symbol is global (external).
 
 template <class M, class Size>
 void collect_symbols(const void *p, Size size, std::vector<typename M::symbol> &symbols) {
-	Q_UNUSED(size);
+	Q_UNUSED(size)
 
 	using elf_addr   = typename M::elf_addr;
 	using elf_header = typename M::elf_header;
@@ -192,9 +192,9 @@ void collect_symbols(const void *p, Size size, std::vector<typename M::symbol> &
 	if (header->e_shnum == 0 || header->e_shentsize == 0) {
 		return;
 	}
-	const auto sections_begin          = reinterpret_cast<elf_shdr*>(base + header->e_shoff);
+	const auto sections_begin          = reinterpret_cast<elf_shdr *>(base + header->e_shoff);
 	const elf_shdr *const sections_end = sections_begin + header->e_shnum;
-	auto section_strings               = reinterpret_cast<const char*>(base + sections_begin[header->e_shstrndx].sh_offset);
+	auto section_strings               = reinterpret_cast<const char *>(base + sections_begin[header->e_shstrndx].sh_offset);
 
 	elf_addr plt_address = 0;
 	elf_addr got_address = 0;
@@ -318,7 +318,7 @@ void collect_symbols(const void *p, Size size, std::vector<typename M::symbol> &
 						related_section = &sections_begin[symbol_tab[i].st_shndx];
 					}
 
-					Q_UNUSED(related_section);
+					Q_UNUSED(related_section)
 
 					if(plt_addresses.find(symbol_tab[i].st_value) == plt_addresses.end()) {
 
@@ -356,7 +356,7 @@ void collect_symbols(const void *p, Size size, std::vector<typename M::symbol> &
 						related_section = &sections_begin[symbol_tab[i].st_shndx];
 					}
 
-					Q_UNUSED(related_section);
+					Q_UNUSED(related_section)
 
 					if(plt_addresses.find(symbol_tab[i].st_value) == plt_addresses.end()) {
 

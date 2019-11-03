@@ -20,14 +20,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "Configuration.h"
 #include "IRegion.h"
 #include "MemoryRegions.h"
+#include "DialogResults.h"
 #include "Util.h"
 #include "edb.h"
 
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QSortFilterProxyModel>
-
-#include "ui_DialogStrings.h"
+#include <QPushButton>
 
 namespace ProcessPropertiesPlugin {
 
@@ -35,33 +35,24 @@ namespace ProcessPropertiesPlugin {
 // Name: DialogStrings
 // Desc:
 //------------------------------------------------------------------------------
-DialogStrings::DialogStrings(QWidget *parent) : QDialog(parent), ui(new Ui::DialogStrings) {
-	ui->setupUi(this);
-	ui->tableView->verticalHeader()->hide();
-	ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+DialogStrings::DialogStrings(QWidget *parent, Qt::WindowFlags f) : QDialog(parent, f)  {
+	ui.setupUi(this);
+	ui.tableView->verticalHeader()->hide();
+	ui.tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
 	filter_model_ = new QSortFilterProxyModel(this);
-	connect(ui->txtSearch, &QLineEdit::textChanged, filter_model_, &QSortFilterProxyModel::setFilterFixedString);
-}
+	connect(ui.txtSearch, &QLineEdit::textChanged, filter_model_, &QSortFilterProxyModel::setFilterFixedString);
 
-//------------------------------------------------------------------------------
-// Name: ~DialogStrings
-// Desc:
-//------------------------------------------------------------------------------
-DialogStrings::~DialogStrings() {
-	delete ui;
-}
+	btnFind_ = new QPushButton(QIcon::fromTheme("edit-find"), tr("Find"));
+	connect(btnFind_, &QPushButton::clicked, this, [this]() {
+		btnFind_->setEnabled(false);
+		ui.progressBar->setValue(0);
+		do_find();
+		ui.progressBar->setValue(100);
+		btnFind_->setEnabled(true);
+	});
 
-//------------------------------------------------------------------------------
-// Name: on_listWidget_itemDoubleClicked
-// Desc: follows the found item in the data view
-//------------------------------------------------------------------------------
-void DialogStrings::on_listWidget_itemDoubleClicked(QListWidgetItem *item) {
-	bool ok;
-	const edb::address_t addr = item->data(Qt::UserRole).toULongLong(&ok);
-	if(ok) {
-		edb::v1::dump_data(addr, false);
-	}
+	ui.buttonBox->addButton(btnFind_, QDialogButtonBox::ActionRole);
 }
 
 //------------------------------------------------------------------------------
@@ -71,10 +62,8 @@ void DialogStrings::on_listWidget_itemDoubleClicked(QListWidgetItem *item) {
 void DialogStrings::showEvent(QShowEvent *) {
 	filter_model_->setFilterKeyColumn(3);
 	filter_model_->setSourceModel(&edb::v1::memory_regions());
-	ui->tableView->setModel(filter_model_);
-
-	ui->progressBar->setValue(0);
-	ui->listWidget->clear();
+	ui.tableView->setModel(filter_model_);
+	ui.progressBar->setValue(0);
 }
 
 //------------------------------------------------------------------------------
@@ -85,7 +74,7 @@ void DialogStrings::do_find() {
 
 	const int min_string_length = edb::v1::config().min_string_length;
 
-	const QItemSelectionModel *const selection_model = ui->tableView->selectionModel();
+	const QItemSelectionModel *const selection_model = ui.tableView->selectionModel();
 	const QModelIndexList sel = selection_model->selectedRows();
 
 	QString str;
@@ -95,7 +84,10 @@ void DialogStrings::do_find() {
 			this,
 			tr("No Region Selected"),
 			tr("You must select a region which is to be scanned for strings."));
+		return;
 	}
+
+	auto resultsDialog = new DialogResults(this);
 
 	for(const QModelIndex &selected_item: sel) {
 
@@ -113,23 +105,16 @@ void DialogStrings::do_find() {
 				int string_length = 0;
 				bool ok = edb::v1::get_ascii_string_at_address(start_address, str, min_string_length, 256, string_length);
 				if(ok) {
-					auto item = new QListWidgetItem(tr("%1: [ASCII] %2").arg(edb::v1::format_pointer(start_address), str));
-					item->setData(Qt::UserRole, start_address.toQVariant());
-					ui->listWidget->addItem(item);
-				} else {
-
-					if(ui->search_unicode->isChecked()) {
-						string_length = 0;
-						ok = edb::v1::get_utf16_string_at_address(start_address, str, min_string_length, 256, string_length);
-						if(ok) {
-							auto item = new QListWidgetItem(tr("%1: [UTF16] %2").arg(edb::v1::format_pointer(start_address), str));
-							item->setData(Qt::UserRole, start_address.toQVariant());
-							ui->listWidget->addItem(item);
-						}
+					resultsDialog->addResult({start_address, str, Result::ASCII});
+				} else if(ui.search_unicode->isChecked()) {
+					string_length = 0;
+					ok = edb::v1::get_utf16_string_at_address(start_address, str, min_string_length, 256, string_length);
+					if(ok) {
+						resultsDialog->addResult({start_address, str, Result::UTF16});
 					}
 				}
 
-				ui->progressBar->setValue(util::percentage((start_address - orig_start), region->size()));
+				ui.progressBar->setValue(util::percentage((start_address - orig_start), region->size()));
 
 				if(ok) {
 					start_address += string_length;
@@ -139,19 +124,14 @@ void DialogStrings::do_find() {
 			}
 		}
 	}
-}
 
-//------------------------------------------------------------------------------
-// Name: on_btnFind_clicked
-// Desc:
-//------------------------------------------------------------------------------
-void DialogStrings::on_btnFind_clicked() {
-	ui->btnFind->setEnabled(false);
-	ui->listWidget->clear();
-	ui->progressBar->setValue(0);
-	do_find();
-	ui->progressBar->setValue(100);
-	ui->btnFind->setEnabled(true);
+	if(resultsDialog->resultCount() == 0) {
+		QMessageBox::information(this, tr("No Strings Found"), tr("No strings were found in the selected region"));
+		delete resultsDialog;
+	} else {
+		resultsDialog->show();
+	}
+
 }
 
 }

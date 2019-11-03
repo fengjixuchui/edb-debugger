@@ -67,6 +67,7 @@ public:
 	virtual QMap<qlonglong, QString> exceptions() const = 0;
 	virtual QString                  exceptionName(qlonglong value) = 0;
 	virtual qlonglong                exceptionValue(const QString &name) = 0;
+	virtual uint8_t                  nopFillByte() const = 0;
 
 public:
 	// important register names
@@ -83,8 +84,7 @@ public:
 public:
 	// basic process management
 	virtual Status attach(edb::pid_t pid) = 0;
-	virtual Status open(const QString &path, const QString &cwd, const QList<QByteArray> &args) = 0;
-	virtual Status open(const QString &path, const QString &cwd, const QList<QByteArray> &args, const QString &tty) = 0;
+	virtual Status open(const QString &path, const QString &cwd, const QList<QByteArray> &args, const QString &tty = QString()) = 0;
 	virtual std::shared_ptr<IDebugEvent> wait_debug_event(int msecs) = 0;
 	virtual Status detach() = 0;
 	virtual void kill() = 0;

@@ -63,15 +63,6 @@ namespace edb {
 
 Q_DECLARE_NAMESPACE_TR(edb)
 
-/*
-namespace detail {
-template class SizedValue<8>;
-template class SizedValue<16>;
-template class SizedValue<32>;
-template class SizedValue<64>;
-}
-*/
-
 namespace {
 
     using BinaryInfoList = QList<IBinary::create_func_ptr_t>;
@@ -478,15 +469,13 @@ bool eval_expression(const QString &expression, address_t *value) {
 	Q_ASSERT(value);
 
 	Expression<address_t> expr(expression, get_variable, get_value);
-	ExpressionError err;
 
-	bool ok;
-	const address_t address = expr.evaluate_expression(&ok, &err);
-	if(ok) {
-		*value = address;
+	const Result<edb::address_t, ExpressionError> address = expr.evaluate_expression();
+	if(address) {
+		*value = *address;
 		return true;
 	} else {
-		QMessageBox::critical(debugger_ui, tr("Error In Expression!"), err.what());
+		QMessageBox::critical(debugger_ui, tr("Error In Expression!"), address.error().what());
 		return false;
 	}
 }
@@ -496,15 +485,15 @@ bool eval_expression(const QString &expression, address_t *value) {
 // Desc:
 //------------------------------------------------------------------------------
 bool get_expression_from_user(const QString &title, const QString &prompt, address_t *value) {
+
     bool retval = false;
-	ExpressionDialog *inputDialog = new ExpressionDialog(title, prompt, edb::v1::debugger_ui);
+	auto inputDialog = std::make_unique<ExpressionDialog>(title, prompt, edb::v1::debugger_ui);
 
 	if(inputDialog->exec()) {
         *value = inputDialog->getAddress();
         retval = true;
     }
 
-    delete inputDialog;
     return retval;
 }
 
@@ -521,6 +510,7 @@ bool get_value_from_user(Register &value) {
 // Desc:
 //------------------------------------------------------------------------------
 bool get_value_from_user(Register &value, const QString &title) {
+
 	static auto dlg = new DialogInputValue(debugger_ui);
 	bool ret = false;
 
@@ -539,6 +529,7 @@ bool get_value_from_user(Register &value, const QString &title) {
 // Desc:
 //------------------------------------------------------------------------------
 bool get_binary_string_from_user(QByteArray &value, const QString &title, int max_length) {
+
 	static auto dlg = new DialogInputBinaryString(debugger_ui);
 
 	bool ret = false;
@@ -1269,7 +1260,7 @@ Result<address_t, QString> string_to_address(const QString &s) {
 		return r;
 	}
 
-	return make_unexpected(QObject::tr("Error converting string to address"));
+	return make_unexpected(tr("Error converting string to address"));
 }
 
 //------------------------------------------------------------------------------
@@ -1365,12 +1356,14 @@ void set_status(const QString &message, int timeoutMillisecs) {
 	// it updates to previous content. In some cases it even doesn't actually update.
 	// This happens at least on Qt 4.
 	// Manual call to repaint makes it show the correct text immediately.
+	// TODO(eteran): still true in Qt5.x?
 	ui()->ui.statusbar->repaint();
 }
 
 void clear_status() {
 	ui()->ui.statusbar->clearMessage();
 	// FIXME: same comment applies as in set_status()
+	// TODO(eteran): still true in Qt5.x?
 	ui()->ui.statusbar->repaint();
 }
 
@@ -1437,7 +1430,7 @@ QVector<quint8> read_pages(address_t address, size_t page_count) {
 			} catch(const std::bad_alloc &) {
 				QMessageBox::critical(
 				            nullptr,
-				            tr("Memroy Allocation Error"),
+				            tr("Memory Allocation Error"),
 				            tr("Unable to satisfy memory allocation request for requested region"));
 			}
 		}
@@ -1525,6 +1518,42 @@ size_t selected_data_size() {
 	}
 
 	return 0;
+}
+
+}
+
+namespace v2 {
+
+//------------------------------------------------------------------------------
+// Name: eval_expression
+// Desc:
+//------------------------------------------------------------------------------
+boost::optional<edb::address_t> eval_expression(const QString &expression) {
+
+	Expression<address_t> expr(expression, v1::get_variable, v1::get_value);
+
+	const Result<edb::address_t, ExpressionError> address = expr.evaluate_expression();
+	if(address) {
+		return *address;
+	} else {
+		QMessageBox::critical(v1::debugger_ui, tr("Error In Expression!"), address.error().what());
+		return boost::none;
+	}
+}
+
+//------------------------------------------------------------------------------
+// Name: get_expression_from_user
+// Desc:
+//------------------------------------------------------------------------------
+boost::optional<edb::address_t> get_expression_from_user(const QString &title, const QString &prompt) {
+
+	auto inputDialog = std::make_unique<ExpressionDialog>(title, prompt, edb::v1::debugger_ui);
+
+	if(inputDialog->exec()) {
+		return inputDialog->getAddress();
+	}
+
+	return boost::none;
 }
 
 }

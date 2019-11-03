@@ -16,27 +16,35 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef LINEEDIT_20110331_H_
-#define LINEEDIT_20110331_H_
+#ifndef DIALOG_REGIONS_20111128_H_
+#define DIALOG_REGIONS_20111128_H_
 
-#include <QLineEdit>
+#include "Types.h"
+#include "ui_DialogRegions.h"
+#include <QDialog>
 
-class QToolButton;
+class QStringListModel;
+class QSortFilterProxyModel;
+class QModelIndex;
 
-class LineEdit : public QLineEdit {
+namespace BinaryInfoPlugin {
+
+class DialogRegions : public QDialog {
 	Q_OBJECT
 
 public:
-    explicit LineEdit(QWidget *parent = nullptr);
-
-protected:
-	void resizeEvent(QResizeEvent *);
-
-private Q_SLOTS:
-	void updateCloseButton(const QString &text);
+	explicit DialogRegions(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+	~DialogRegions() override = default;
 
 private:
-	QToolButton *const clear_button_;
+	void showEvent(QShowEvent *event) override;
+
+private:
+	 Ui::DialogRegions ui;
+	 QSortFilterProxyModel *filter_model_;
+	 QPushButton *btnExplore_;
 };
+
+}
 
 #endif

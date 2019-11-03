@@ -1,3 +1,4 @@
+
 #ifndef REGISTER_VIEW_MODEL_H_20151206
 #define REGISTER_VIEW_MODEL_H_20151206
 
@@ -18,15 +19,7 @@ class Category;
 class SIMDCategory;
 class FPUCategory;
 
-// Sets register with name `name` to value `value`
-// Returns whether it succeeded
-// If succeeded, `resultingValue` is set to what the function got back after setting
-// `resultingValue` can differ from `value` if e.g. the kernel doesn't allow to flip some
-// bits of the register, like EFLAGS on x86.
-template <typename T>
-bool setDebuggeeRegister(const QString &name, const T &value, T &resultingValue);
-
-class Model : public QAbstractItemModel {
+class EDB_EXPORT Model : public QAbstractItemModel {
 	Q_OBJECT
 
 public:
@@ -157,14 +150,14 @@ public:
 	QModelIndex activeIndex() const;
 
 public:
-	virtual void setChosenSIMDSize(const QModelIndex &index, ElementSize newSize);
-	virtual void setChosenSIMDFormat(const QModelIndex &index, NumberDisplayMode newFormat);
-	virtual void setChosenFPUFormat(const QModelIndex &index, NumberDisplayMode newFormat);
+	void setChosenSIMDSize(const QModelIndex &index, ElementSize newSize);
+	void setChosenSIMDFormat(const QModelIndex &index, NumberDisplayMode newFormat);
+	void setChosenFPUFormat(const QModelIndex &index, NumberDisplayMode newFormat);
 
 	// Should be called after updating all the data
-	virtual void dataUpdateFinished();
+	void dataUpdateFinished();
 	// should be called when the debugger is about to resume, to save current register values to previous
-	virtual void saveValues();
+	void saveValues();
 
 protected:
 	// All categories are there to stay after they've been inserted
@@ -317,7 +310,7 @@ template <class UnderlyingType>
 class FlagsRegister;
 
 template <class UnderlyingType>
-class BitFieldItem : public RegisterViewItem, public BitFieldProperties {
+class BitFieldItem final : public RegisterViewItem, public BitFieldProperties {
 protected:
 	unsigned             offset_;
 	unsigned             length_;
@@ -344,7 +337,7 @@ public:
 };
 
 template <class StoredType>
-class FlagsRegister : public SimpleRegister<StoredType> {
+class FlagsRegister final : public SimpleRegister<StoredType> {
 	template <class UnderlyingType>
 	friend class BitFieldItem;
 
@@ -355,9 +348,6 @@ public:
 	RegisterViewItem *child(int) override;
 	int childCount() const override;
 
-private:
-	void addField(std::unique_ptr<BitFieldItem<StoredType>> item);
-
 protected:
 	std::vector<BitFieldItem<StoredType>> fields;
 };
@@ -366,7 +356,7 @@ template <class StoredType>
 class SIMDRegister;
 
 template <class StoredType, class SizingType>
-class SIMDFormatItem : public RegisterViewItem {
+class SIMDFormatItem final : public RegisterViewItem {
 public:
 	SIMDFormatItem(NumberDisplayMode format);
 
@@ -390,7 +380,7 @@ private:
 class SIMDElement {}; // generic non-templated class to dynamic_cast to
 
 template <class StoredType, class SizingType>
-class SIMDSizedElement : public RegisterViewItem, public SIMDElement {
+class SIMDSizedElement final : public RegisterViewItem, public SIMDElement {
 	friend class SIMDFormatItem<StoredType, SizingType>;
 
 public:
@@ -414,7 +404,8 @@ private:
 	std::vector<SIMDFormatItem<StoredType, SizingType>> formats;
 };
 
-template <class StoredType> class SIMDSizedElementsContainer : public RegisterViewItem {
+template <class StoredType>
+class SIMDSizedElementsContainer final : public RegisterViewItem {
 	template <class SizeType, class... Args>
 	void addElement(Args &&... args);
 
@@ -432,8 +423,10 @@ public:
 	bool              changed() const override;
 };
 
-template <class StoredType> class SIMDRegister : public SimpleRegister<StoredType> {
-	template <class U, class V> friend class SIMDSizedElement;
+template <class StoredType>
+class SIMDRegister final : public SimpleRegister<StoredType> {
+	template <class U, class V>
+	friend class SIMDSizedElement;
 
 protected:
 	std::deque<SIMDSizedElementsContainer<StoredType>> sizedElementContainers;
@@ -450,7 +443,7 @@ public:
 class GenericFPURegister {}; // generic non-templated class to dynamic_cast to
 
 template <class FloatType>
-class FPURegister : public SimpleRegister<FloatType>, public GenericFPURegister {
+class FPURegister final : public SimpleRegister<FloatType>, public GenericFPURegister {
 	template <class U, class V> friend class SIMDFormatItem;
 
 public:
@@ -496,7 +489,7 @@ private:
 	bool                                               visible_ = true;
 };
 
-class SIMDCategory : public Category {
+class SIMDCategory final : public Category {
 public:
 	SIMDCategory(const QString &name, int row, const std::vector<NumberDisplayMode> &validFormats);
 	~SIMDCategory();
@@ -518,7 +511,7 @@ private:
 	std::vector<NumberDisplayMode> const validFormats_;
 };
 
-class FPUCategory : public Category {
+class FPUCategory final : public Category {
 public:
 	FPUCategory(const QString &name, int row);
 	~FPUCategory();
@@ -532,7 +525,7 @@ private:
 	NumberDisplayMode chosenFormat_;
 };
 
-class CategoriesHolder : public RegisterViewItem {
+class CategoriesHolder final : public RegisterViewItem {
 	friend class Model;
 
 public:

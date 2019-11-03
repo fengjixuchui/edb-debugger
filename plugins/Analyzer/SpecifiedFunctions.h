@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef DIALOGSPECIFIED_FUNCTIONS_20070705_H_
 #define DIALOGSPECIFIED_FUNCTIONS_20070705_H_
 
+#include "ui_SpecifiedFunctions.h"
 #include <QDialog>
 
 class QStringListModel;
@@ -27,18 +28,15 @@ class QModelIndex;
 
 namespace AnalyzerPlugin {
 
-namespace Ui { class SpecifiedFunctions; }
-
 class SpecifiedFunctions : public QDialog {
 	Q_OBJECT
 
 public:
-    explicit SpecifiedFunctions(QWidget *parent = nullptr);
-	~SpecifiedFunctions() override;
+    explicit SpecifiedFunctions(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+	~SpecifiedFunctions() override = default;
 
 public Q_SLOTS:
 	void on_function_list_doubleClicked(const QModelIndex &index);
-	void on_refresh_button_clicked();
 
 private:
 	void showEvent(QShowEvent *event) override;
@@ -47,9 +45,10 @@ private:
 	void do_find();
 
 private:
-	 Ui::SpecifiedFunctions *const ui;
-	 QStringListModel *         model_;
-	 QSortFilterProxyModel *    filter_model_;
+	 Ui::SpecifiedFunctions ui;
+	 QStringListModel *model_;
+	 QSortFilterProxyModel *filter_model_;
+	 QPushButton *btnRefresh_;
 };
 
 }

@@ -34,9 +34,7 @@ State::State() : impl_(edb::v1::debugger_core ? edb::v1::debugger_core->create_s
 // Name: ~State
 // Desc:
 //------------------------------------------------------------------------------
-State::~State() {
-	// NOTE(eteran): we don't default this destructor so unique_ptr can work correctly
-}
+State::~State() = default;
 
 //------------------------------------------------------------------------------
 // Name: State
@@ -57,9 +55,9 @@ void State::swap(State &other) {
 // Name: operator=
 // Desc:
 //------------------------------------------------------------------------------
-State &State::operator=(const State &other) {
-	if(this != &other) {
-		State(other).swap(*this);
+State &State::operator=(const State &rhs) {
+	if(this != &rhs) {
+		State(rhs).swap(*this);
 	}
 	return *this;
 }
@@ -148,7 +146,7 @@ edb::reg_t State::flags() const {
 	if(impl_) {
 		return impl_->flags();
 	}
-	return edb::address_t(0);
+	return edb::reg_t(0);
 }
 
 //------------------------------------------------------------------------------
@@ -253,7 +251,7 @@ edb::reg_t State::debug_register(size_t n) const {
 	if(impl_) {
 		return impl_->debug_register(n);
 	}
-	return edb::address_t(0);
+	return edb::reg_t(0);
 }
 
 //------------------------------------------------------------------------------
@@ -264,6 +262,17 @@ void State::set_debug_register(size_t n, edb::reg_t value) {
 	if(impl_) {
 		impl_->set_debug_register(n, value);
 	}
+}
+
+//------------------------------------------------------------------------------
+// Name: arch_register
+// Desc:
+//------------------------------------------------------------------------------
+Register State::arch_register(uint64_t type, size_t n) const {
+	if(impl_) {
+		return impl_->arch_register(type, n);
+	}
+	return Register();
 }
 
 #if defined(EDB_X86) || defined(EDB_X86_64)
@@ -342,39 +351,6 @@ QString State::fpu_register_tag_string(std::size_t n) const {
 		return impl_->fpu_register_tag_string(n);
 	}
 	return QString();
-}
-
-//------------------------------------------------------------------------------
-// Name: mmx_register
-// Desc:
-//------------------------------------------------------------------------------
-Register State::mmx_register(std::size_t n) const {
-	if(impl_) {
-		return impl_->mmx_register(n);
-	}
-	return Register();
-}
-
-//------------------------------------------------------------------------------
-// Name: xmm_register
-// Desc:
-//------------------------------------------------------------------------------
-Register State::xmm_register(std::size_t n) const {
-	if(impl_) {
-		return impl_->xmm_register(n);
-	}
-	return Register();
-}
-
-//------------------------------------------------------------------------------
-// Name: xmm_register
-// Desc:
-//------------------------------------------------------------------------------
-Register State::ymm_register(std::size_t n) const {
-	if(impl_) {
-		return impl_->ymm_register(n);
-	}
-	return Register();
 }
 #endif
 

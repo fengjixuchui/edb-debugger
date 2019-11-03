@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "Instruction.h"
 
+#include <QRegularExpression>
 #include <QRegExp>
 #include <QString>
 #include <QStringList>
@@ -71,7 +72,7 @@ bool apriori_not_simd(const Instruction &insn, const Operand &operand) {
 
 bool KxRegisterPresent(const Instruction &insn) {
 
-	const auto operandCount = insn.operand_count();
+	const size_t operandCount = insn.operand_count();
 
 	for (std::size_t i = 0; i < operandCount; ++i) {
 		const auto op = insn[i];
@@ -88,8 +89,8 @@ std::size_t simdOperandNormalizedNumberInInstruction(const Instruction &insn, co
 	if(!canBeNonSIMD)
 		assert(!apriori_not_simd(insn, operand));
 
-	std::size_t number       = operand.index();
-	const auto  operandCount = insn.operand_count();
+	size_t number = operand.index();
+	const size_t operandCount = insn.operand_count();
 
 	// normalized number is according to Intel order
 	if (activeFormatter.options().syntax == Formatter::SyntaxATT) {
@@ -150,13 +151,13 @@ bool init(Architecture arch) {
 	return true;
 }
 
-Instruction::Instruction(Instruction &&other) : insn_(other.insn_), byte0_(other.byte0_), rva_(other.rva_) {
+Instruction::Instruction(Instruction &&other) noexcept : insn_(other.insn_), byte0_(other.byte0_), rva_(other.rva_) {
 	other.insn_  = nullptr;
 	other.byte0_ = 0;
 	other.rva_   = 0;
 }
 
-Instruction &Instruction::operator=(Instruction &&rhs) {
+Instruction &Instruction::operator=(Instruction &&rhs) noexcept {
 	insn_      = rhs.insn_;
 	byte0_     = rhs.byte0_;
 	rva_       = rhs.rva_;
@@ -313,7 +314,8 @@ QString Formatter::adjustInstructionText(const Instruction &insn) const {
 		operands.replace(ripRel, "rel 0x" + QString::number(insn->detail->x86.disp + insn->address + insn->size, 16));
 	}
 
-	if (insn.operand_count() == 2 && ((insn[0]->type == X86_OP_REG && insn[1]->type == X86_OP_MEM) || (insn[1]->type == X86_OP_REG && insn[0]->type == X86_OP_MEM))) {
+	if (insn.operand_count() == 2 && insn->id != X86_INS_MOVZX && insn->id != X86_INS_MOVSX &&
+		((insn[0]->type == X86_OP_REG && insn[1]->type == X86_OP_MEM) || (insn[1]->type == X86_OP_REG && insn[0]->type == X86_OP_MEM))) {
 		operands.replace(QRegExp("(\\b.?(mm)?word|byte)\\b( ptr)? "), "");
 	}
 #endif
@@ -385,45 +387,67 @@ void Formatter::checkCapitalize(std::string &str, bool canContainHex) const {
 		std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 		if (canContainHex) {
 			QString qstr = QString::fromStdString(str);
-			str          = qstr.replace(QRegExp("\\b0X([0-9A-F]+)\\b"), "0x\\1").toStdString();
+
+
+			const QRegularExpression re("\\b0X([0-9A-F]+)\\b");
+			qstr.replace(re, "0x\\1");
+
+			str = qstr.toStdString();
 		}
 	}
 }
 
 std::vector<std::string> toOperands(QString str) {
+
 	// Remove any decorations: we want just operands themselves
-	str.replace(QRegExp(",?\\{[^}]*\\}"), "");
-	QStringList              betweenCommas = str.split(",");
+	static const QRegularExpression re(",?\\{[^}]*\\}");
+	str.replace(re, "");
+
+	QStringList betweenCommas = str.split(",");
 	std::vector<std::string> operands;
+
 	// Have to work around inconvenient AT&T syntax for SIB, that's why so complicated logic
 	for (auto it = betweenCommas.begin(); it != betweenCommas.end(); ++it) {
+
 		QString &current(*it);
+
 		// We've split operand string by commas, but there may be SIB scheme
 		// in the form (B,I,S) or (B) or (I,S). Let's find missing parts of it.
 		if (it->contains("(") && !it->contains(")")) {
+
 			std::logic_error matchFailed("failed to find matching ')'");
+
 			// the next part must exist and have continuation of SIB scheme
-			if (std::next(it) == betweenCommas.end())
+			if (std::next(it) == betweenCommas.end()) {
 				throw matchFailed;
+			}
+
 			current += ",";
 			current += *(++it);
+
 			// This may still be not enough
 			if (current.contains("(") && !current.contains(")")) {
-				if (std::next(it) == betweenCommas.end())
+				if (std::next(it) == betweenCommas.end()) {
 					throw matchFailed;
+				}
+
 				current += ",";
 				current += *(++it);
 			}
+
 			// The expected SIB string has at most three components.
 			// If we still haven't found closing parenthesis, we're screwed
-			if (current.contains("(") && !current.contains(")"))
+			if (current.contains("(") && !current.contains(")")) {
 				throw matchFailed;
+			}
 		}
 		operands.push_back(current.trimmed().toStdString());
 	}
 
-	if (operands.size() > MAX_OPERANDS)
+	if (operands.size() > MAX_OPERANDS) {
 		throw std::logic_error("got more than " + std::to_string(MAX_OPERANDS) + " operands");
+	}
+
 	return operands;
 }
 

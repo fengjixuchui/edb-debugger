@@ -21,12 +21,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "IDebugger.h"
 #include "IRegion.h"
 #include "MemoryRegions.h"
+#include "DialogResults.h"
 #include "Util.h"
 #include <QMessageBox>
 #include <QVector>
+#include <QListWidget>
 #include <cstring>
-
-#include "ui_DialogBinaryString.h"
+#include <QPushButton>
 
 namespace BinarySearcherPlugin {
 
@@ -34,21 +35,23 @@ namespace BinarySearcherPlugin {
 // Name: DialogBinaryString
 // Desc: constructor
 //------------------------------------------------------------------------------
-DialogBinaryString::DialogBinaryString(QWidget *parent) : QDialog(parent), ui(new Ui::DialogBinaryString) {
-	ui->setupUi(this);
-	ui->progressBar->setValue(0);
-	ui->listWidget->clear();
+DialogBinaryString::DialogBinaryString(QWidget *parent, Qt::WindowFlags f) : QDialog(parent, f) {
+	ui.setupUi(this);
+	ui.progressBar->setValue(0);
 
 	// NOTE(eteran): address issue #574
-	ui->binaryString->setShowKeepSize(false);
-}
+	ui.binaryString->setShowKeepSize(false);
 
-//------------------------------------------------------------------------------
-// Name: ~DialogBinaryString
-// Desc:
-//------------------------------------------------------------------------------
-DialogBinaryString::~DialogBinaryString() {
-	delete ui;
+	btnFind_ = new QPushButton(QIcon::fromTheme("edit-find"), tr("Find"));
+	connect(btnFind_, &QPushButton::clicked, this, [this]() {
+		btnFind_->setEnabled(false);
+		ui.progressBar->setValue(0);
+		do_find();
+		ui.progressBar->setValue(100);
+		btnFind_->setEnabled(true);
+	});
+
+	ui.buttonBox->addButton(btnFind_, QDialogButtonBox::ActionRole);
 }
 
 //------------------------------------------------------------------------------
@@ -57,8 +60,9 @@ DialogBinaryString::~DialogBinaryString() {
 //------------------------------------------------------------------------------
 void DialogBinaryString::do_find() {
 
-	const QByteArray b = ui->binaryString->value();
-	ui->listWidget->clear();
+	const QByteArray b = ui.binaryString->value();
+
+	auto results = new DialogResults(this);
 
 	const int sz = b.size();
 	if(sz != 0) {
@@ -68,11 +72,11 @@ void DialogBinaryString::do_find() {
 
 		int i = 0;
 		for(const std::shared_ptr<IRegion> &region: regions) {
-			const auto region_size = region->size();
+			const size_t region_size = region->size();
 
 			// a short circut for speading things up
-			if(ui->chkSkipNoAccess->isChecked() && !region->accessible()) {
-				ui->progressBar->setValue(util::percentage(++i, regions.size()));
+			if(ui.chkSkipNoAccess->isChecked() && !region->accessible()) {
+				ui.progressBar->setValue(util::percentage(++i, regions.size()));
 				continue;
 			}
 
@@ -88,18 +92,16 @@ void DialogBinaryString::do_find() {
 					// compare values..
 					if(std::memcmp(p, b.constData(), sz) == 0) {
 						const edb::address_t addr = p - &pages[0] + region->start();
-						const edb::address_t align = 1 << (ui->cmbAlignment->currentIndex() + 1);
+						const edb::address_t align = 1 << (ui.cmbAlignment->currentIndex() + 1);
 
-						if(!ui->chkAlignment->isChecked() || (addr % align) == 0) {
-							auto item = new QListWidgetItem(edb::v1::format_pointer(addr));
-							item->setData(Qt::UserRole, addr.toQVariant());
-							ui->listWidget->addItem(item);
+						if(!ui.chkAlignment->isChecked() || (addr % align) == 0) {
+							results->addResult(DialogResults::RegionType::Data, addr);
 						}
 					}
 
 					// update progress bar every 64KB
 					if ((quint64(p) & 0xFFFF) == 0) {
-						ui->progressBar->setValue(util::percentage(i, regions.size(), p - &pages[0], region_size));
+						ui.progressBar->setValue(util::percentage(i, regions.size(), p - &pages[0], region_size));
 					}
 
 					++p;
@@ -107,29 +109,15 @@ void DialogBinaryString::do_find() {
 			}
 			++i;
 		}
+
+		if(results->resultCount() == 0) {
+			QMessageBox::information(nullptr, tr("No Results"), tr("No Results were found!"));
+			delete results;
+		} else {
+			results->show();
+		}
 	}
 }
 
-//------------------------------------------------------------------------------
-// Name: on_btnFind_clicked
-// Desc: find button event handler
-//------------------------------------------------------------------------------
-void DialogBinaryString::on_btnFind_clicked() {
-
-	ui->btnFind->setEnabled(false);
-	ui->progressBar->setValue(0);
-	do_find();
-	ui->progressBar->setValue(100);
-	ui->btnFind->setEnabled(true);
-}
-
-//------------------------------------------------------------------------------
-// Name: on_listWidget_itemDoubleClicked
-// Desc: follows the found item in the data view
-//------------------------------------------------------------------------------
-void DialogBinaryString::on_listWidget_itemDoubleClicked(QListWidgetItem *item) {
-	const edb::address_t addr = item->data(Qt::UserRole).toULongLong();
-	edb::v1::dump_data(addr, false);
-}
 
 }

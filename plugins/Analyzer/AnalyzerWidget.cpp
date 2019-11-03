@@ -32,13 +32,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QScrollBar>
 #include <QDir>
 #include <QElapsedTimer>
+#include <QPixmap>
 
 namespace AnalyzerPlugin {
 
 //------------------------------------------------------------------------------
 // Name:
 //------------------------------------------------------------------------------
-AnalyzerWidget::AnalyzerWidget(QWidget *parent, Qt::WindowFlags f) : QWidget(parent, f), mouse_pressed_(false), cache_(nullptr) {
+AnalyzerWidget::AnalyzerWidget(QWidget *parent, Qt::WindowFlags f) : QWidget(parent, f)  {
 
 	QFontMetrics fm(font());
 
@@ -66,7 +67,7 @@ void AnalyzerWidget::paintEvent(QPaintEvent *event) {
 	QElapsedTimer timer;
 	timer.start();
 
-	Q_UNUSED(event);
+	Q_UNUSED(event)
 
 	const std::shared_ptr<IRegion> region = edb::v1::current_cpu_view_region();
 	if (!region || region->size() == 0) {
@@ -76,17 +77,14 @@ void AnalyzerWidget::paintEvent(QPaintEvent *event) {
 	const QSet<edb::address_t> specified_functions = edb::v1::analyzer()->specified_functions();
 	const IAnalyzer::FunctionMap functions = edb::v1::analyzer()->functions(region);
 
-	// TODO(eteran): why cast to float?
 	const auto byte_width = static_cast<float>(width()) / region->size();
 
 	if (!cache_ || width() != cache_->width() || height() != cache_->height() || cache_num_funcs_ != functions.size()) {
-		if (cache_) {
-			delete cache_;
-		}
-		cache_ = new QPixmap(width(), height());
+
+		cache_ = std::make_unique<QPixmap>(width(), height());
 		cache_num_funcs_ = functions.size();
 
-		QPainter painter(cache_);
+		QPainter painter(cache_.get());
 		painter.fillRect(0, 0, width(), height(), QBrush(Qt::black));
 
 		for(auto it = functions.begin(); it != functions.end(); ++it) {
@@ -103,7 +101,7 @@ void AnalyzerWidget::paintEvent(QPaintEvent *event) {
 		}
 
 		// highlight header of binary (probably not going to be too noticeable but just in case)
-		if(auto binary_info = edb::v1::get_binary_info(region)) {
+		if(std::unique_ptr<IBinary> binary_info = edb::v1::get_binary_info(region)) {
 			painter.fillRect(0, 0, static_cast<int>(binary_info->header_size() * byte_width), height(), QBrush(Qt::darkBlue));
 		}
 	}
@@ -115,7 +113,7 @@ void AnalyzerWidget::paintEvent(QPaintEvent *event) {
 		if(auto scroll_area = qobject_cast<QAbstractScrollArea*>(edb::v1::disassembly_widget())) {
 			if(QScrollBar *scrollbar = scroll_area->verticalScrollBar()) {
 				QFontMetrics fm(font());
-				const int offset = static_cast<int>(scrollbar->value() * byte_width);
+				const auto offset = static_cast<int>(scrollbar->value() * byte_width);
 
 				const QString triangle(QChar(0x25b4));
 
@@ -162,8 +160,7 @@ void AnalyzerWidget::mousePressEvent(QMouseEvent *event) {
 			const edb::address_t start = region->start();
 			const edb::address_t end   = region->end();
 
-			// NOTE(eteran): this cast is NECESSARY because address_t + <float> == mess :-/
-			edb::address_t offset = start + static_cast<size_t>(event->x() / byte_width);
+			edb::address_t offset = start + static_cast<int>(event->x() / byte_width);
 
 			const edb::address_t address = qBound<edb::address_t>(start, offset, end - 1);
 			edb::v1::jump_to_address(address);
@@ -175,7 +172,7 @@ void AnalyzerWidget::mousePressEvent(QMouseEvent *event) {
 // Name:
 //------------------------------------------------------------------------------
 void AnalyzerWidget::mouseReleaseEvent(QMouseEvent *event) {
-	Q_UNUSED(event);
+	Q_UNUSED(event)
 	mouse_pressed_ = false;
 }
 

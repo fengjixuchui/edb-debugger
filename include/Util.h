@@ -70,13 +70,13 @@ template <class N1, class N2, class N3, class N4>
 int percentage(N1 regions_finished, N2 regions_total, N3 bytes_done, N4 bytes_total) {
 
 	// how much percent does each region account for?
-	const auto region_step = 1.0 / static_cast<double>(regions_total) * 100;
+	const auto region_step = 1.0f / static_cast<float>(regions_total) * 100.0f;
 
 	// how many regions are done?
-	const double regions_complete = region_step * regions_finished;
+	const float regions_complete = region_step * regions_finished;
 
 	// how much of the current region is done?
-	const double region_percent = region_step * static_cast<float>(bytes_done) / static_cast<float>(bytes_total);
+	const float region_percent = region_step * static_cast<float>(bytes_done) / static_cast<float>(bytes_total);
 
 	return static_cast<int>(regions_complete + region_percent);
 }
@@ -88,13 +88,6 @@ int percentage(N1 regions_finished, N2 regions_total, N3 bytes_done, N4 bytes_to
 template <class N1, class N2>
 int percentage(N1 bytes_done, N2 bytes_total) {
 	return percentage(0, 1, bytes_done, bytes_total);
-}
-
-template <typename T>
-typename std::enable_if<std::is_floating_point<T>::value, QString>::type toString(T value, int precision) {
-	std::ostringstream ss;
-	ss << std::setprecision(precision) << value;
-	return QString::fromStdString(ss.str());
 }
 
 inline void markMemory(void *memory, std::size_t size) {
@@ -138,25 +131,6 @@ do {                                                                            
 	std::abort();                                                                                       \
 } while(0)
 
-// Returns a string of `AsType`s ordered from highest in SIMD register to lowest
-template <typename AsType, typename T>
-typename std::enable_if<std::is_floating_point<AsType>::value, QString>::type packedFloatsToString(const T &value) {
-	
-	auto p = reinterpret_cast<const char *>(&value);
-	constexpr std::size_t elementCount = sizeof(value) / sizeof(AsType);
-	QString result;
-
-	for (std::size_t i = elementCount - 1; i != std::size_t(-1); --i) {
-		edb::detail::SizedValue<sizeof(AsType) * 8> v;
-		std::memcpy(&v, &p[i * sizeof(AsType)], sizeof(AsType));
-
-		static const int spacing    = 1;
-		static const int fieldWidth = maxPrintedLength<AsType>() + spacing;
-		result += formatFloat(v).rightJustified(fieldWidth);
-	}
-	
-	return result;
-}
 
 template <typename T>
 QString formatInt(T value, NumberDisplayMode mode) {
@@ -168,29 +142,10 @@ QString formatInt(T value, NumberDisplayMode mode) {
 	case NumberDisplayMode::Unsigned:
 		return value.unsignedToString();
 	default:
-		EDB_PRINT_AND_DIE("Unexpected integer display mode ", (long)mode);
+		EDB_PRINT_AND_DIE("Unexpected integer display mode ", static_cast<long>(mode));
 	}
 }
 
-template <typename AsType, typename T>
-typename std::enable_if<std::is_integral<AsType>::value, QString>::type packedIntsToString(const T &value, NumberDisplayMode mode) {
-
-	auto p = reinterpret_cast<const char *>(&value);
-	constexpr std::size_t elementCount = sizeof(value) / sizeof(AsType);
-	
-	QString result;
-	for (std::size_t i = elementCount - 1; i != std::size_t(-1); --i) {
-		edb::detail::SizedValue<sizeof(AsType) * 8> v;
-		std::memcpy(&v, &p[i * sizeof(AsType)], sizeof(AsType));
-
-		static const int spacing       = 1;
-		static const int decimalLength = maxPrintedLength<AsType>();
-		const int        fieldWidth = (mode == NumberDisplayMode::Hex ? sizeof(AsType) * 2 : decimalLength) + spacing;
-		result += formatInt(v, mode).rightJustified(fieldWidth);
-	}
-	
-	return result;
-}
 
 template <typename Float>
 boost::optional<Float> fullStringToFloat(const std::string &s) {
@@ -230,8 +185,30 @@ boost::optional<Float> fullStringToFloat(const std::string &s) {
 	return boost::none;
 }
 
+template <class T, size_t N, class U = T>
+constexpr void shl(std::array<T, N> &buffer, U value = T()) {
+	static_assert (std::is_convertible<T, U>::value, "U must be convertable to the type contained in the array!");
+	std::rotate(buffer.begin(), buffer.begin() + 1, buffer.end());
+	buffer[N - 1] = value;
 }
 
-#define BIT_LENGTH(expr) (8 * sizeof(expr))
+template <class T, size_t N, class U = T>
+constexpr void shr(std::array<T, N> &buffer, U value = T()) {
+	static_assert (std::is_convertible<T, U>::value, "U must be convertable to the type contained in the array!");
+	std::rotate(buffer.rbegin(), buffer.rbegin() + 1, buffer.rend());
+	buffer[0] = value;
+}
+
+template <class T, size_t N>
+constexpr void rol(std::array<T, N> &buffer) {
+	std::rotate(buffer.begin(), buffer.begin() + 1, buffer.end());
+}
+
+template <class T, size_t N>
+constexpr void ror(std::array<T, N> &buffer) {
+	std::rotate(buffer.rbegin(), buffer.rbegin() + 1, buffer.rend());
+}
+
+}
 
 #endif

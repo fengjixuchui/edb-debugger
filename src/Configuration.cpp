@@ -30,6 +30,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
+QDataStream &operator<<(QDataStream &s, const IBreakpoint::TypeId &id);
+QDataStream &operator>>(QDataStream &s, IBreakpoint::TypeId &id);
+
 //------------------------------------------------------------------------------
 // Name: Configuration
 // Desc: constructor
@@ -54,15 +57,14 @@ void Configuration::sendChangeNotification() {
 	Q_EMIT settingsUpdated();
 }
 
-QDataStream& operator<<(QDataStream& s, const IBreakpoint::TypeId &id)
-{
+QDataStream &operator<<(QDataStream &s, const IBreakpoint::TypeId &id) {
 	return s << static_cast<int>(id);
 }
 
-QDataStream& operator>>(QDataStream& s, IBreakpoint::TypeId& id) {
-	int value=0;
+QDataStream &operator>>(QDataStream &s, IBreakpoint::TypeId &id) {
+	int value = 0;
 	s >> value;
-	id=static_cast<IBreakpoint::TypeId>(value);
+	id = static_cast<IBreakpoint::TypeId>(value);
 	return s;
 }
 
@@ -111,7 +113,9 @@ void Configuration::readSettings() {
 	data_word_width         = settings.value("appearance.data.word_width", 1).value<int>();
 	data_row_width          = settings.value("appearance.data.row_width", 16).value<int>();
 	show_address_separator  = settings.value("appearance.address_colon.enabled", true).toBool();
+	show_jump_arrow         = settings.value("appearance.show_jump_arrow.enabled", true).toBool();
     function_offsets_in_hex = settings.value("appearance.function_offsets_in_hex.enabled", false).toBool();
+	
 	settings.endGroup();
 
 	settings.beginGroup("Debugging");
@@ -158,7 +162,7 @@ void Configuration::readSettings() {
 	settings.beginGroup("Exceptions");
 	enable_signals_message_box = settings.value("signals.show_message_box.enabled", true).toBool();
 	
-	auto temp_ignored_exceptions = settings.value("signals.ignore_list", QVariantList()).toList();
+	QVariantList temp_ignored_exceptions = settings.value("signals.ignore_list", QVariantList()).toList();
 
     ignored_exceptions.clear();
 	for(QVariant &exception : temp_ignored_exceptions) {
@@ -226,6 +230,7 @@ void Configuration::writeSettings() {
 	settings.setValue("appearance.data.word_width", data_word_width);
 	settings.setValue("appearance.data.row_width", data_row_width);
 	settings.setValue("appearance.address_colon.enabled", show_address_separator);
+	settings.setValue("appearance.show_jump_arrow.enabled", show_jump_arrow);
     settings.setValue("appearance.function_offsets_in_hex.enabled", function_offsets_in_hex);
 	settings.endGroup();
 

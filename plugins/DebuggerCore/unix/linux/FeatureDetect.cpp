@@ -25,7 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/wait.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
-#include <sys/uio.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -46,19 +45,19 @@ public:
 	}
 
 	ssize_t write(const void *buf, size_t count) {
-		const auto result = ::write(fd, buf, count);
+		const ssize_t result = ::write(fd, buf, count);
 		success = result != -1;
 		return result;
 	}
 
 	ssize_t read(void *buf, size_t count) {
-		const auto result = ::read(fd, buf, count);
+		const ssize_t result = ::read(fd, buf, count);
 		success = result != -1;
 		return result;
 	}
 
-	size_t seekp(size_t offset) {
-		const auto result = ::lseek(fd, offset, SEEK_SET);
+	off_t seekp(size_t offset) {
+		const off_t result = ::lseek(fd, offset, SEEK_SET);
 		success = result != -1;
 		return result;
 	}

@@ -15,11 +15,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef GPR_EDIT_H_20190412_
+#define GPR_EDIT_H_20190412_
+
 #include <QLineEdit>
 
 namespace ODbgRegisterView {
 
-class GPREdit : public QLineEdit {
+class GPREdit final : public QLineEdit {
 	Q_OBJECT
 
 public:
@@ -55,3 +58,5 @@ private:
 };
 
 }
+
+#endif
