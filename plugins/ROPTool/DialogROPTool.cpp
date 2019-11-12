@@ -264,7 +264,7 @@ bool is_effective_nop(const edb::Instruction &inst) {
 	case X86_INS_JRCXZ:
 	case X86_INS_JCXZ:
 		// jmp 0
-		return inst[0]->type == X86_OP_IMM && static_cast<edb::address_t>(inst[0]->imm) == inst.rva() + inst.byte_size();
+		return inst[0]->type == X86_OP_IMM && static_cast<edb::address_t>(inst[0]->imm) == inst.rva() + inst.byteSize();
 	case X86_INS_SHL:
 	case X86_INS_SHR:
 	case X86_INS_ROL:
@@ -333,10 +333,10 @@ void DialogROPTool::addGadget(DialogResults *results, const InstructionList &ins
 		auto it    = instructions.begin();
 		auto inst1 = *it++;
 
-		QString instruction_string = QString("%1").arg(QString::fromStdString(edb::v1::formatter().to_string(*inst1)));
+		QString instruction_string = QString("%1").arg(QString::fromStdString(edb::v1::formatter().toString(*inst1)));
 		for (; it != instructions.end(); ++it) {
 			auto inst = *it;
-			instruction_string.append(QString("; %1").arg(QString::fromStdString(edb::v1::formatter().to_string(*inst))));
+			instruction_string.append(QString("; %1").arg(QString::fromStdString(edb::v1::formatter().toString(*inst))));
 		}
 
 		if (!ui.checkUnique->isChecked() || !uniqueResults_.contains(instruction_string)) {
@@ -401,8 +401,8 @@ void DialogROPTool::doFind() {
 								}
 
 								instruction_list.push_back(inst);
-								p += inst->byte_size();
-								rva += inst->byte_size();
+								p += inst->byteSize();
+								rva += inst->byteSize();
 							}
 
 							auto inst1 = std::make_shared<edb::Instruction>(p, l, rva);
@@ -421,8 +421,8 @@ void DialogROPTool::doFind() {
 									continue;
 								} else {
 
-									p += inst1->byte_size();
-									rva += inst1->byte_size();
+									p += inst1->byteSize();
+									rva += inst1->byteSize();
 
 									// eat up any NOPs in between...
 									Q_FOREVER {
@@ -432,8 +432,8 @@ void DialogROPTool::doFind() {
 										}
 
 										instruction_list.push_back(inst);
-										p += inst->byte_size();
-										rva += inst->byte_size();
+										p += inst->byteSize();
+										rva += inst->byteSize();
 									}
 
 									auto inst2 = std::make_shared<edb::Instruction>(p, l, rva);
@@ -443,8 +443,8 @@ void DialogROPTool::doFind() {
 										addGadget(resultsDialog, instruction_list);
 									} else if (inst2->valid() && inst2->operation() == X86_INS_POP) {
 										instruction_list.push_back(inst2);
-										p += inst2->byte_size();
-										rva += inst2->byte_size();
+										p += inst2->byteSize();
+										rva += inst2->byteSize();
 
 										auto inst3 = std::make_shared<edb::Instruction>(p, l, rva);
 
@@ -452,8 +452,8 @@ void DialogROPTool::doFind() {
 
 											instruction_list.push_back(inst3);
 
-											if (inst2->operand_count() == 1 && is_register(inst2->operand(0))) {
-												if (inst3->operand_count() == 1 && is_register(inst3->operand(0))) {
+											if (inst2->operandCount() == 1 && is_register(inst2->operand(0))) {
+												if (inst3->operandCount() == 1 && is_register(inst3->operand(0))) {
 													if (inst2->operand(0)->reg == inst3->operand(0)->reg) {
 														addGadget(resultsDialog, instruction_list);
 													}

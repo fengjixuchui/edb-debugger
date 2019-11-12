@@ -51,11 +51,11 @@ private:
 		int l2;
 		int l3;
 		int l4;
-		int lines_to_render;
-		int selected_line;
-		int line_height;
+		int linesToRender;
+		int selectedLines;
+		int lineHeight;
 		QPalette::ColorGroup group;
-		std::map<int, int> line_badge_width; // for jmp drawing
+		std::map<int, int> lineBadgeWidth; // for jmp drawing
 	};
 
 public:
@@ -75,21 +75,21 @@ protected:
 
 public:
 	QByteArray saveState() const;
-	QString get_comment(edb::address_t address);
+	QString getComment(edb::address_t address);
 	bool addressShown(edb::address_t address) const;
 	edb::address_t addressFromPoint(const QPoint &pos) const;
 	edb::address_t selectedAddress() const;
-	int remove_comment(edb::address_t address);
+	int removeComment(edb::address_t address);
 	int selectedSize() const;
 	std::shared_ptr<IRegion> region() const;
-	void add_comment(edb::address_t address, QString comment);
-	void clear_comments();
+	void addComment(edb::address_t address, QString comment);
+	void clearComments();
 	void restoreComments(QVariantList &);
 	void restoreState(const QByteArray &stateBuffer);
 	void setSelectedAddress(edb::address_t address);
 
 Q_SIGNALS:
-	void signal_updated();
+	void signalUpdated();
 	void breakPointToggled(edb::address_t address);
 	void regionChanged();
 
@@ -103,31 +103,29 @@ public Q_SLOTS:
 	void setShowAddressSeparator(bool value);
 	void resetColumns();
 
-private Q_SLOTS:
-	void scrollbar_action_triggered(int action);
-
 private:
+	void scrollbarActionTriggered(int action);
 	QString formatAddress(edb::address_t address) const;
 	QString instructionString(const edb::Instruction &inst) const;
-	Result<int, QString> get_instruction_size(edb::address_t address) const;
-	Result<int, QString> get_instruction_size(edb::address_t address, uint8_t *buf, int *size) const;
-	boost::optional<unsigned int> get_line_of_address(edb::address_t addr) const;
-	edb::address_t address_from_coord(int x, int y) const;
-	int address_length() const;
-	int auto_line2() const;
+	Result<int, QString> getInstructionSize(edb::address_t address) const;
+	Result<int, QString> getInstructionSize(edb::address_t address, uint8_t *buf, int *size) const;
+	boost::optional<unsigned int> getLineOfAddress(edb::address_t addr) const;
+	edb::address_t addressFromCoord(int x, int y) const;
+	int addressLength() const;
+	int autoLine2() const;
 	int line0() const;
 	int line1() const;
 	int line2() const;
 	int line3() const;
 	int line4() const;
-	int line_height() const;
-	int previous_instructions(int current_address, int count);
-	int previous_instruction(IAnalyzer *analyzer, int current_address);
-	int following_instructions(int current_address, int count);
-	int following_instruction(int current_address);
+	int lineHeight() const;
+	int previousInstructions(int current_address, int count);
+	int previousInstruction(IAnalyzer *analyzer, int current_address);
+	int followingInstructions(int current_address, int count);
+	int followingInstruction(int current_address);
 	int updateDisassembly(int lines_to_render);
 	int getSelectedLineNumber() const;
-	void paint_line_bg(QPainter &painter, QBrush brush, int line, int num_lines = 1);
+	void paintLineBg(QPainter &painter, QBrush brush, int line, int num_lines = 1);
 	void setAddressOffset(edb::address_t address);
 	void updateScrollbars();
 	void updateSelectedAddress(QMouseEvent *event);
@@ -187,23 +185,24 @@ private:
 private:
 	struct JumpArrow {
 
-		int src_line;
+		int sourceLine;
+
 		edb::address_t target;
 
 		// if target is visible in viewport
-		bool dst_in_viewport;
+		bool destInViewport;
 
 		// only valid is dst_in_viewport is true
-		bool dst_in_middle_of_instruction;
+		bool destInMiddleOfInstruction;
 
 		// if dst_in_viewport is false, then this param is ignored
-		int dst_line;
+		int destLine;
 
 		// if dst_in_viewport is false, then the value here should be near INT_MAX
 		size_t distance;
 
 		// length of arrow horizontal
-		int horizontal_length;
+		int horizontalLength;
 	};
 };
 

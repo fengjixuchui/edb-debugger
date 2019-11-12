@@ -52,7 +52,7 @@ DialogBreakpoints::DialogBreakpoints(QWidget *parent, Qt::WindowFlags f)
  * @brief DialogBreakpoints::showEvent
  */
 void DialogBreakpoints::showEvent(QShowEvent *) {
-	connect(edb::v1::disassembly_widget(), SIGNAL(signal_updated()), this, SLOT(updateList()));
+	connect(edb::v1::disassembly_widget(), SIGNAL(signalUpdated()), this, SLOT(updateList()));
 	updateList();
 }
 
@@ -60,7 +60,7 @@ void DialogBreakpoints::showEvent(QShowEvent *) {
  * @brief DialogBreakpoints::hideEvent
  */
 void DialogBreakpoints::hideEvent(QHideEvent *) {
-	disconnect(edb::v1::disassembly_widget(), SIGNAL(signal_updated()), this, SLOT(updateList()));
+	disconnect(edb::v1::disassembly_widget(), SIGNAL(signalUpdated()), this, SLOT(updateList()));
 }
 
 /**
@@ -113,7 +113,7 @@ void DialogBreakpoints::on_btnAdd_clicked() {
 	if (ok && !text.isEmpty()) {
 		Expression<edb::address_t> expr(text, edb::v1::get_variable, edb::v1::get_value);
 
-		const Result<edb::address_t, ExpressionError> address = expr.evaluate_expression();
+		const Result<edb::address_t, ExpressionError> address = expr.evaluate();
 		if (address) {
 			edb::v1::create_breakpoint(*address);
 			updateList();

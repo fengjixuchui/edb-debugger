@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ODbgRV_Util.h"
 #include "RegisterGroup.h"
 #include "RegisterView.h"
-#if defined EDB_X86 || defined EDB_X86_64
+#if defined(EDB_X86) || defined(EDB_X86_64)
 #include "DialogEditFPU.h"
 #include "ODbgRV_x86Common.h"
 #endif
@@ -65,36 +65,67 @@ ValueField::ValueField(int fieldWidth, const QModelIndex &index, const std::func
 	using namespace RegisterViewModelBase;
 
 	if (index.data(Model::IsNormalRegisterRole).toBool() || index.data(Model::IsSIMDElementRole).toBool()) {
-		menuItems_.push_back(new_action(trUtf8("&Modify…"), this, this, SLOT(defaultAction())));
+		menuItems_.push_back(new_action(trUtf8("&Modify…"), this, [this](bool) {
+			defaultAction();
+		}));
+
 		menuItems_.back()->setShortcut(QKeySequence(Qt::Key_Enter));
 	} else if (index.data(Model::IsBitFieldRole).toBool() && index.data(Model::BitFieldLengthRole).toInt() == 1) {
-		menuItems_.push_back(new_action(tr("&Toggle"), this, this, SLOT(defaultAction())));
+		menuItems_.push_back(new_action(tr("&Toggle"), this, [this](bool) {
+			defaultAction();
+		}));
+
 		menuItems_.back()->setShortcut(QKeySequence(Qt::Key_Enter));
 	}
 
-	menuItems_.push_back(new_action(tr("&Copy to clipboard"), this, this, SLOT(copyToClipboard())));
+	menuItems_.push_back(new_action(tr("&Copy to clipboard"), this, [this](bool) {
+		copyToClipboard();
+	}));
+
 	menuItems_.back()->setShortcut(CopyFieldShortcut);
 
-#if defined EDB_X86 || defined EDB_X86_64
+#if defined(EDB_X86) || defined(EDB_X86_64)
 	if (index.sibling(index.row(), ModelNameColumn).data().toString() == FsrName) {
-		menuItems_.push_back(new_action(tr("P&ush FPU stack"), this, this, SLOT(pushFPUStack())));
-		menuItems_.push_back(new_action(tr("P&op FPU stack"), this, this, SLOT(popFPUStack())));
+		menuItems_.push_back(new_action(tr("P&ush FPU stack"), this, [this](bool) {
+			pushFPUStack();
+		}));
+
+		menuItems_.push_back(new_action(tr("P&op FPU stack"), this, [this](bool) {
+			popFPUStack();
+		}));
 	}
 #endif
 
 	if (index.parent().data().toString() == GprCategoryName) {
 		// These should be above others, so prepending instead of appending
-		menuItems_.push_front(new_action(tr("In&vert"), this, this, SLOT(invert())));
+		menuItems_.push_front(new_action(tr("In&vert"), this, [this](bool) {
+			invert();
+		}));
 
-		menuItems_.push_front(setToOneAction_ = new_action(tr("Set to &1"), this, this, SLOT(setToOne())));
+		setToOneAction_ = new_action(tr("Set to &1"), this, [this](bool) {
+			setToOne();
+		});
 
-		menuItems_.push_front(setToZeroAction_ = new_action(tr("&Zero"), this, this, SLOT(setZero())));
+		menuItems_.push_front(setToOneAction_);
+
+		setToZeroAction_ = new_action(tr("&Zero"), this, [this](bool) {
+			setZero();
+		});
+
+		menuItems_.push_front(setToZeroAction_);
+
 		menuItems_.front()->setShortcut(QKeySequence(SetToZeroKey));
 
-		menuItems_.push_front(new_action(tr("&Decrement"), this, this, SLOT(decrement())));
+		menuItems_.push_front(new_action(tr("&Decrement"), this, [this](bool) {
+			decrement();
+		}));
+
 		menuItems_.front()->setShortcut(QKeySequence(DecrementKey));
 
-		menuItems_.push_front(new_action(tr("&Increment"), this, this, SLOT(increment())));
+		menuItems_.push_front(new_action(tr("&Increment"), this, [this](bool) {
+			increment();
+		}));
+
 		menuItems_.front()->setShortcut(QKeySequence(IncrementKey));
 	}
 }
@@ -195,7 +226,7 @@ void ValueField::editNormalReg(const QModelIndex &indexToEdit, const QModelIndex
 			model()->setData(indexToEdit, QVariant::fromValue(r), Model::ValueAsRegisterRole);
 		}
 	}
-#if defined EDB_X86 || defined EDB_X86_64
+#if defined(EDB_X86) || defined(EDB_X86_64)
 	else if (r.type() == Register::TYPE_FPU) {
 		const auto fpuEdit = regView()->fpuEditDialog();
 		fpuEdit->setValue(r);
@@ -380,7 +411,7 @@ void add_to_top(RegisterViewModelBase::Model *model, const QModelIndex &fsrIndex
 
 }
 
-#if defined EDB_X86 || defined EDB_X86_64
+#if defined(EDB_X86) || defined(EDB_X86_64)
 void ValueField::pushFPUStack() {
 	assert(index_.sibling(index_.row(), ModelNameColumn).data().toString() == FsrName);
 	add_to_top(model(), index_, -1);

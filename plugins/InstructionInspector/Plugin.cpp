@@ -1254,7 +1254,7 @@ public:
 			CS_ARCH_X86
 #elif defined(EDB_ARM32)
 			CS_ARCH_ARM
-#elif defined EDB_ARM64
+#elif defined(EDB_ARM64)
 			CS_ARCH_ARM64
 #else
 #error "What to pass to capstone?"
@@ -1302,7 +1302,9 @@ public:
 Plugin::Plugin(QObject *parent)
 	: QObject(parent), menuAction_(new QAction("Inspect instruction (Capstone info)", this)) {
 
-	connect(menuAction_, SIGNAL(triggered(bool)), this, SLOT(showDialog()));
+	connect(menuAction_, &QAction::triggered, this, [this](bool) {
+		showDialog();
+	});
 }
 
 /**
@@ -1334,7 +1336,7 @@ InstructionDialog::InstructionDialog(QWidget *parent, Qt::WindowFlags f)
 	const cs_mode mode =
 #if defined(EDB_X86) || defined(EDB_X86_64)
 		edb::v1::debuggeeIs32Bit() ? CS_MODE_32 : CS_MODE_64
-#elif defined(EDB_ARM32) || defined EDB_ARM64
+#elif defined(EDB_ARM32) || defined(EDB_ARM64)
 		// FIXME(ARM): we also have possible values:
 		//	* CS_MODE_ARM,
 		//	* CS_MODE_THUMB,
@@ -1365,7 +1367,9 @@ InstructionDialog::InstructionDialog(QWidget *parent, Qt::WindowFlags f)
 		buttonCompare_ = new QPushButton("Compare disassemblers");
 		layout_->addWidget(buttonCompare_);
 
-		connect(buttonCompare_, SIGNAL(clicked(bool)), this, SLOT(compareDisassemblers()));
+		connect(buttonCompare_, &QPushButton::clicked, this, [this](bool) {
+			compareDisassemblers();
+		});
 
 		tree_->setUniformRowHeights(true);
 		tree_->setColumnCount(2);
