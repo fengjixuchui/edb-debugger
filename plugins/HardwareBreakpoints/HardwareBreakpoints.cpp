@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "HardwareBreakpoints.h"
-#include "DialogHWBreakpoints.h"
+#include "DialogHwBreakpoints.h"
 #include "IDebugEvent.h"
 #include "IDebugger.h"
 #include "IProcess.h"
@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QMessageBox>
 #include <QtDebug>
 
-#include "ui_DialogHWBreakpoints.h"
+#include "ui_DialogHwBreakpoints.h"
 
 // TODO: at the moment, nearly this entire file is x86/x86-64 specific
 //       we need to figure out a proper way to support (if at all) non
@@ -55,7 +55,7 @@ HardwareBreakpoints::HardwareBreakpoints(QObject *parent)
  */
 void HardwareBreakpoints::privateInit() {
 
-	auto dialog = new DialogHWBreakpoints(edb::v1::debugger_ui);
+	auto dialog = new DialogHwBreakpoints(edb::v1::debugger_ui);
 	dialog_     = dialog;
 
 	// indexed access to members for simplicity later

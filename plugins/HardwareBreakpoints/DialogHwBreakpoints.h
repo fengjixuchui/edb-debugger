@@ -16,23 +16,23 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef DIALOGHWBREAKPOINTS_20080228_H_
-#define DIALOGHWBREAKPOINTS_20080228_H_
+#ifndef DIALOG_HW_BREAKPOINTS_H_20080228_
+#define DIALOG_HW_BREAKPOINTS_H_20080228_
 
-#include "ui_DialogHWBreakpoints.h"
+#include "ui_DialogHwBreakpoints.h"
 #include <QDialog>
 
 namespace HardwareBreakpointsPlugin {
 
-class DialogHWBreakpoints : public QDialog {
+class DialogHwBreakpoints : public QDialog {
 	Q_OBJECT
 
 private:
 	friend class HardwareBreakpoints;
 
 public:
-	explicit DialogHWBreakpoints(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
-	~DialogHWBreakpoints() override = default;
+	explicit DialogHwBreakpoints(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+	~DialogHwBreakpoints() override = default;
 
 private:
 	void showEvent(QShowEvent *event) override;
@@ -44,7 +44,7 @@ private Q_SLOTS:
 	void type4IndexChanged(int index);
 
 private:
-	Ui::DialogHWBreakpoints ui;
+	Ui::DialogHwBreakpoints ui;
 };
 
 }

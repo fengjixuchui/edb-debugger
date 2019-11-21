@@ -18,8 +18,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef REGISTER_VIEW_MODEL_ARM_20170813
-#define REGISTER_VIEW_MODEL_ARM_20170813
+#ifndef ARM_REGISTER_VIEW_MODEL_H_20170813_
+#define ARM_REGISTER_VIEW_MODEL_H_20170813_
 
 #include "RegisterViewModelBase.h"
 #include "Types.h"
@@ -39,7 +39,7 @@ public:
 	};
 
 public:
-	RegisterViewModel(int CPUFeaturesPresent, QObject *parent = nullptr);
+	explicit RegisterViewModel(int CPUFeaturesPresent, QObject *parent = nullptr);
 	QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 	void setCpuMode(CpuMode mode);
 	// NOTE: all these functions only change data, they don't emit dataChanged!

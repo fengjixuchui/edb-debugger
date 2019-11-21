@@ -16,8 +16,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef DEBUGEVENTS_20180312_H_
-#define DEBUGEVENTS_20180312_H_
+#ifndef DEBUG_EVENT_HANDLERS_H_20180312_
+#define DEBUG_EVENT_HANDLERS_H_20180312_
 
 #include "Types.h"
 #include <list>
