@@ -29,7 +29,7 @@ DialogResults::DialogResults(QWidget *parent, Qt::WindowFlags f)
  * @brief DialogResults::addResult
  * @param result
  */
-void DialogResults::addResult(const Result &result) {
+void DialogResults::addResult(const ResultsModel::Result &result) {
 	model_->addResult(result);
 }
 
@@ -41,7 +41,7 @@ void DialogResults::on_tableView_doubleClicked(const QModelIndex &index) {
 	if (index.isValid()) {
 		const QModelIndex realIndex = filterModel_->mapToSource(index);
 		if (realIndex.isValid()) {
-			if (auto item = static_cast<Result *>(realIndex.internalPointer())) {
+			if (auto item = static_cast<ResultsModel::Result *>(realIndex.internalPointer())) {
 				edb::v1::dump_data(item->address, false);
 			}
 		}

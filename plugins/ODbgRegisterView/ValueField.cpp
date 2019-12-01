@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "ValueField.h"
 #include "DialogEditGPR.h"
-#include "DialogEditSIMDRegister.h"
+#include "DialogEditSimdRegister.h"
 #include "ODbgRV_Common.h"
 #include "ODbgRV_Util.h"
 #include "RegisterGroup.h"
@@ -82,7 +82,7 @@ ValueField::ValueField(int fieldWidth, const QModelIndex &index, const std::func
 		copyToClipboard();
 	}));
 
-	menuItems_.back()->setShortcut(CopyFieldShortcut);
+	menuItems_.back()->setShortcut(QKeySequence::Copy);
 
 #if defined(EDB_X86) || defined(EDB_X86_64)
 	if (index.sibling(index.row(), ModelNameColumn).data().toString() == FsrName) {

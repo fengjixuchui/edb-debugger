@@ -11,8 +11,6 @@ class QSortFilterProxyModel;
 
 namespace OpcodeSearcherPlugin {
 
-class ResultsModel;
-
 class DialogResults : public QDialog {
 	Q_OBJECT
 
@@ -20,7 +18,7 @@ public:
 	explicit DialogResults(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
 
 public:
-	void addResult(const Result &result);
+	void addResult(const ResultsModel::Result &result);
 
 private Q_SLOTS:
 	void on_tableView_doubleClicked(const QModelIndex &index);
@@ -34,5 +32,6 @@ private:
 	QSortFilterProxyModel *filterModel_ = nullptr;
 };
 
-#endif
 }
+
+#endif
