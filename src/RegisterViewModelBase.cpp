@@ -16,13 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "RegisterViewModelBase.h"
+#include "FloatX.h"
 #include "IDebugger.h"
 #include "IProcess.h"
 #include "IThread.h"
 #include "State.h"
 #include "Types.h"
-#include "Util.h"
 #include "edb.h"
+#include "util/Container.h"
 
 #include <QBrush>
 #include <QDebug>
@@ -31,6 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QtGlobal>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <numeric>
@@ -560,8 +562,8 @@ Category::Category(const QString &name, int row)
 	init(nullptr, row);
 }
 
-Category::Category(Category &&other)
-	: RegisterViewItem(std::move(other.name())) {
+Category::Category(Category &&other) noexcept
+	: RegisterViewItem(std::move(other.name_)) {
 	parentItem = other.parentItem;
 	row_       = other.row_;
 	registers  = std::move(other.registers);
@@ -1111,7 +1113,7 @@ SIMDSizedElementsContainer<StoredType>::SIMDSizedElementsContainer(const QString
 }
 
 template <class StoredType>
-SIMDSizedElementsContainer<StoredType>::SIMDSizedElementsContainer(SIMDSizedElementsContainer &&other)
+SIMDSizedElementsContainer<StoredType>::SIMDSizedElementsContainer(SIMDSizedElementsContainer &&other) noexcept
 	: RegisterViewItem(other), elements(std::move(other.elements)) {
 }
 

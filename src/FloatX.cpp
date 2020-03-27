@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "FloatX.h"
-#include "Util.h"
+#include "util/Float.h"
 
 #include <iomanip>
 #include <sstream>
@@ -40,8 +40,6 @@ void convert_real64_to_real80(const void *src, void *dst) {
 	float64_to_float80(src, dst);
 }
 #endif
-
-
 
 namespace {
 
@@ -126,7 +124,6 @@ double to_real(edb::value64 value) {
 long double to_real(edb::value80 value) {
 	return value.toFloatValue();
 }
-
 
 template <unsigned MantissaLength, typename FloatHolder>
 FloatValueClass ieee_classify(FloatHolder value) {

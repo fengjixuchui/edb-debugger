@@ -15,6 +15,7 @@
 
 #ifdef _MSC_VER
 extern "C" EDB_EXPORT void __fastcall long_double_to_double(const void *src, double *dest);
+EDB_EXPORT void convert_real64_to_real80(const void *src, void *dst);
 #endif
 
 namespace edb {
@@ -765,7 +766,7 @@ public:
 	template <class U>
 	explicit value_type80(const U &data, size_t offset = 0) {
 #ifdef _MSC_VER
-		if(std::is_same<U, long double>::value && sizeof(U) < sizeof(T)) {
+		if (std::is_same<U, long double>::value && sizeof(U) < sizeof(T)) {
 			T temp;
 			convert_real64_to_real80(&data, &temp);
 
