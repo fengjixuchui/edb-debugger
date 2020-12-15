@@ -96,7 +96,7 @@ bool function_symbol_base(edb::address_t address, QString *value, int *offset) {
 }
 }
 
-const char version[] = "1.2.0";
+const char version[] = "1.3.0";
 
 namespace internal {
 
@@ -1487,7 +1487,7 @@ namespace v2 {
 // Name: eval_expression
 // Desc:
 //------------------------------------------------------------------------------
-boost::optional<edb::address_t> eval_expression(const QString &expression) {
+std::optional<edb::address_t> eval_expression(const QString &expression) {
 
 	Expression<address_t> expr(expression, v1::get_variable, v1::get_value);
 
@@ -1496,7 +1496,7 @@ boost::optional<edb::address_t> eval_expression(const QString &expression) {
 		return *address;
 	} else {
 		QMessageBox::critical(v1::debugger_ui, tr("Error In Expression!"), address.error().what());
-		return boost::none;
+		return {};
 	}
 }
 
@@ -1504,7 +1504,7 @@ boost::optional<edb::address_t> eval_expression(const QString &expression) {
 // Name: get_expression_from_user
 // Desc:
 //------------------------------------------------------------------------------
-boost::optional<edb::address_t> get_expression_from_user(const QString &title, const QString &prompt) {
+std::optional<edb::address_t> get_expression_from_user(const QString &title, const QString &prompt) {
 
 	auto inputDialog = std::make_unique<ExpressionDialog>(title, prompt, edb::v1::debugger_ui);
 
@@ -1512,7 +1512,7 @@ boost::optional<edb::address_t> get_expression_from_user(const QString &title, c
 		return inputDialog->getAddress();
 	}
 
-	return boost::none;
+	return {};
 }
 
 //------------------------------------------------------------------------------
@@ -1525,7 +1525,7 @@ QString format_bytes(const void *buffer, size_t count) {
 	if (count != 0) {
 		bytes.reserve(count * 4);
 
-		auto it = static_cast<const uint8_t *>(buffer);
+		auto it  = static_cast<const uint8_t *>(buffer);
 		auto end = it + count;
 
 		char buf[4];

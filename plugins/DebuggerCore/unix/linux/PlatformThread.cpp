@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "util/Container.h"
 
 #include <QDebug>
+#include <cassert>
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE /* or _BSD_SOURCE or _SVID_SOURCE */

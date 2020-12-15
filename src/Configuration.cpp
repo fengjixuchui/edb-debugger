@@ -30,34 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
-QDataStream &operator<<(QDataStream &s, const IBreakpoint::TypeId &id);
-QDataStream &operator>>(QDataStream &s, IBreakpoint::TypeId &id);
-static QString getDefaultPluginPath();
-
-//------------------------------------------------------------------------------
-// Name: Configuration
-// Desc: constructor
-//------------------------------------------------------------------------------
-Configuration::Configuration(QObject *parent)
-	: QObject(parent) {
-	readSettings();
-}
-
-//------------------------------------------------------------------------------
-// Name: ~Configuration
-// Desc: destructor
-//------------------------------------------------------------------------------
-Configuration::~Configuration() {
-	writeSettings();
-}
-
-//------------------------------------------------------------------------------
-// Name: sendChangeNotification
-// Desc: emits the settingsUpdated signal
-//------------------------------------------------------------------------------
-void Configuration::sendChangeNotification() {
-	Q_EMIT settingsUpdated();
-}
+namespace {
 
 QDataStream &operator<<(QDataStream &s, const IBreakpoint::TypeId &id) {
 	return s << static_cast<int>(id);
@@ -87,6 +60,33 @@ static QString getDefaultPluginPath() {
 	return default_plugin_path;
 }
 
+}
+
+//------------------------------------------------------------------------------
+// Name: Configuration
+// Desc: constructor
+//------------------------------------------------------------------------------
+Configuration::Configuration(QObject *parent)
+	: QObject(parent) {
+	readSettings();
+}
+
+//------------------------------------------------------------------------------
+// Name: ~Configuration
+// Desc: destructor
+//------------------------------------------------------------------------------
+Configuration::~Configuration() {
+	writeSettings();
+}
+
+//------------------------------------------------------------------------------
+// Name: sendChangeNotification
+// Desc: emits the settingsUpdated signal
+//------------------------------------------------------------------------------
+void Configuration::sendChangeNotification() {
+	Q_EMIT settingsUpdated();
+}
+
 //------------------------------------------------------------------------------
 // Name: read_settings
 // Desc: read in the options from the file
@@ -98,7 +98,7 @@ void Configuration::readSettings() {
 #ifdef Q_OS_WIN32
 	const QString default_font = QFont("Courier New", 8).toString();
 #elif defined(Q_OS_MACX)
-	const QString default_font   = QFont("Courier New", 10).toString();
+	const QString default_font = QFont("Courier New", 10).toString();
 #else
 	const QString default_font = QFont("Monospace", 8).toString();
 #endif
@@ -123,6 +123,7 @@ void Configuration::readSettings() {
 	show_address_separator  = settings.value("appearance.address_colon.enabled", true).toBool();
 	show_jump_arrow         = settings.value("appearance.show_jump_arrow.enabled", true).toBool();
 	function_offsets_in_hex = settings.value("appearance.function_offsets_in_hex.enabled", false).toBool();
+	theme_name              = settings.value("appearance.theme", "System").toString();
 
 	settings.endGroup();
 
@@ -137,9 +138,7 @@ void Configuration::readSettings() {
 	disableASLR             = settings.value("debugger.disableASLR.enabled", false).toBool();
 	disableLazyBinding      = settings.value("debugger.disableLazyBinding.enabled", false).toBool();
 	break_on_library_load   = settings.value("debugger.break_on_library_load_event.enabled", false).toBool();
-	default_breakpoint_type = settings.value("debugger.default_breakpoint_type",
-											 QVariant::fromValue(IBreakpoint::TypeId::Automatic))
-								  .value<IBreakpoint::TypeId>();
+	default_breakpoint_type = settings.value("debugger.default_breakpoint_type", QVariant::fromValue(IBreakpoint::TypeId::Automatic)).value<IBreakpoint::TypeId>();
 	settings.endGroup();
 
 	settings.beginGroup("Disassembly");
@@ -241,6 +240,7 @@ void Configuration::writeSettings() {
 	settings.setValue("appearance.address_colon.enabled", show_address_separator);
 	settings.setValue("appearance.show_jump_arrow.enabled", show_jump_arrow);
 	settings.setValue("appearance.function_offsets_in_hex.enabled", function_offsets_in_hex);
+	settings.setValue("appearance.theme", theme_name);
 	settings.endGroup();
 
 	settings.beginGroup("Debugging");

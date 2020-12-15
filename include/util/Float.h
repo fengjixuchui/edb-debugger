@@ -3,15 +3,15 @@
 #define UTIL_FLOAT_H_2020227_
 
 #include "FloatX.h"
-#include <boost/optional.hpp>
 #include <cerrno>
+#include <optional>
 #include <string>
 #include <type_traits>
 
 namespace util {
 
 template <typename Float>
-boost::optional<Float> full_string_to_float(const std::string &s) {
+std::optional<Float> full_string_to_float(const std::string &s) {
 
 	static_assert(
 		std::is_same<Float, float>::value ||
@@ -27,17 +27,17 @@ boost::optional<Float> full_string_to_float(const std::string &s) {
 	Float value;
 	errno = 0;
 
-	if (std::is_same<Float, float>::value) {
+	if constexpr (std::is_same<Float, float>::value) {
 		value = std::strtof(str, &end);
-	} else if (std::is_same<Float, double>::value) {
+	} else if constexpr (std::is_same<Float, double>::value) {
 		value = std::strtod(str, &end);
-	} else {
+	} else if constexpr (std::is_same<Float, long double>::value) {
 		value = std::strtold(str, &end);
 	}
 
 	if (errno) {
 		if ((errno == ERANGE && (value == 0 || std::isinf(value))) || errno != ERANGE) {
-			return boost::none;
+			return {};
 		}
 	}
 
@@ -45,7 +45,7 @@ boost::optional<Float> full_string_to_float(const std::string &s) {
 		return value;
 	}
 
-	return boost::none;
+	return {};
 }
 
 }

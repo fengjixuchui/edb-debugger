@@ -49,6 +49,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "State.h"
 #include "Symbol.h"
 #include "SymbolManager.h"
+#include "Theme.h"
 #include "edb.h"
 
 #if defined(Q_OS_LINUX)
@@ -85,6 +86,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <clocale>
 #include <cstring>
 #include <memory>
+#include <random>
 
 #if defined(Q_OS_UNIX)
 #include <signal.h>
@@ -399,11 +401,11 @@ Debugger::Debugger(QWidget *parent)
 	setRIPAction_  = createAction(tr("&Set %1 to this Instruction").arg("RIP"), QKeySequence(tr("Ctrl+*")), &Debugger::mnuCPUSetEIP);
 	gotoRIPAction_ = createAction(tr("&Goto %1").arg("RIP"), QKeySequence(tr("*")), &Debugger::mnuCPUJumpToEIP);
 #elif defined(EDB_X86)
-	setRIPAction_       = createAction(tr("&Set %1 to this Instruction").arg("EIP"), QKeySequence(tr("Ctrl+*")), &Debugger::mnuCPUSetEIP);
-	gotoRIPAction_      = createAction(tr("&Goto %1").arg("EIP"), QKeySequence(tr("*")), &Debugger::mnuCPUJumpToEIP);
+	setRIPAction_  = createAction(tr("&Set %1 to this Instruction").arg("EIP"), QKeySequence(tr("Ctrl+*")), &Debugger::mnuCPUSetEIP);
+	gotoRIPAction_ = createAction(tr("&Goto %1").arg("EIP"), QKeySequence(tr("*")), &Debugger::mnuCPUJumpToEIP);
 #elif defined(EDB_ARM32) || defined(EDB_ARM64)
-	setRIPAction_       = createAction(tr("&Set %1 to this Instruction").arg("PC"), QKeySequence(tr("Ctrl+*")), &Debugger::mnuCPUSetEIP);
-	gotoRIPAction_      = createAction(tr("&Goto %1").arg("PC"), QKeySequence(tr("*")), &Debugger::mnuCPUJumpToEIP);
+	setRIPAction_  = createAction(tr("&Set %1 to this Instruction").arg("PC"), QKeySequence(tr("Ctrl+*")), &Debugger::mnuCPUSetEIP);
+	gotoRIPAction_ = createAction(tr("&Goto %1").arg("PC"), QKeySequence(tr("*")), &Debugger::mnuCPUJumpToEIP);
 #else
 #error "This doesn't initialize actions and will lead to crash"
 #endif
@@ -601,7 +603,9 @@ QString Debugger::createTty() {
 			// first try to get a 'unique' filename, i would love to use a system
 			// temp file API... but there doesn't seem to be one which will create
 			// a pipe...only ordinary files!
-			const auto temp_pipe = QString("%1/edb_temp_file_%2_%3").arg(QDir::tempPath()).arg(qrand()).arg(getpid());
+			std::random_device rd;
+			std::mt19937 mt(rd());
+			const auto temp_pipe = QString("%1/edb_temp_file_%2_%3").arg(QDir::tempPath()).arg(mt()).arg(getpid());
 
 			// make sure it isn't already there, and then make the pipe
 			::unlink(qPrintable(temp_pipe));
@@ -766,12 +770,11 @@ void Debugger::createDataTab() {
 
 	auto hexview = std::make_shared<QHexView>();
 
-	QSettings settings;
-	settings.beginGroup("Theme");
+	Theme theme = Theme::load();
 
-	QColor addressForegroundColor = QColor(settings.value("theme.address.foreground", "red").toString());
-	QColor alternatingByteColor   = QColor(settings.value("theme.alternating_byte.foreground", "blue").toString());
-	QColor nonPrintableTextColor  = QColor(settings.value("theme.non_printing_character.foreground", "red").toString());
+	QColor addressForegroundColor = theme.text[Theme::Address].foreground().color();
+	QColor alternatingByteColor   = theme.text[Theme::AlternatingByte].foreground().color();
+	QColor nonPrintableTextColor  = theme.text[Theme::NonPrintingCharacter].foreground().color();
 	hexview->setAddressColor(addressForegroundColor);
 	hexview->setAlternateWordColor(alternatingByteColor);
 	hexview->setNonPrintableTextColor(nonPrintableTextColor);
@@ -888,7 +891,7 @@ void Debugger::finishPluginSetup() {
 //------------------------------------------------------------------------------
 Result<edb::address_t, QString> Debugger::getGotoExpression() {
 
-	boost::optional<edb::address_t> address = edb::v2::get_expression_from_user(tr("Goto Expression"), tr("Expression:"));
+	std::optional<edb::address_t> address = edb::v2::get_expression_from_user(tr("Goto Expression"), tr("Expression:"));
 	if (address) {
 		return *address;
 	} else {
@@ -983,12 +986,12 @@ void Debugger::setupStackView() {
 
 	stackView_ = std::make_shared<QHexView>();
 
-	QSettings settings;
-	settings.beginGroup("Theme");
+	Theme theme = Theme::load();
 
-	QColor addressForegroundColor = QColor(settings.value("theme.address.foreground", "red").toString());
-	QColor alternatingByteColor   = QColor(settings.value("theme.alternating_byte.foreground", "blue").toString());
-	QColor nonPrintableTextColor  = QColor(settings.value("theme.non_printing_character.foreground", "red").toString());
+	QColor addressForegroundColor = theme.text[Theme::Address].foreground().color();
+	QColor alternatingByteColor   = theme.text[Theme::AlternatingByte].foreground().color();
+	QColor nonPrintableTextColor  = theme.text[Theme::NonPrintingCharacter].foreground().color();
+
 	stackView_->setAddressColor(addressForegroundColor);
 	stackView_->setAlternateWordColor(alternatingByteColor);
 	stackView_->setNonPrintableTextColor(nonPrintableTextColor);
@@ -1081,7 +1084,7 @@ void Debugger::showEvent(QShowEvent *) {
 		QScreen *screen = QGuiApplication::primaryScreen();
 		QRect sg        = screen->geometry();
 #else
-        QRect sg = desktop.screenGeometry();
+		QRect sg = desktop.screenGeometry();
 #endif
 		int x = (sg.width() - this->width()) / 2;
 		int y = (sg.height() - this->height()) / 2;
@@ -2182,7 +2185,7 @@ void Debugger::mnuStackModify() {
 //------------------------------------------------------------------------------
 bool Debugger::isBreakpointConditionTrue(const QString &condition) {
 
-	if (boost::optional<edb::address_t> condition_value = edb::v2::eval_expression(condition)) {
+	if (std::optional<edb::address_t> condition_value = edb::v2::eval_expression(condition)) {
 		return *condition_value;
 	}
 	return true;

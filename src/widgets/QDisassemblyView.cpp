@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "SessionManager.h"
 #include "State.h"
 #include "SyntaxHighlighter.h"
+#include "Theme.h"
 #include "edb.h"
 #include "util/Font.h"
 
@@ -67,32 +68,26 @@ constexpr int DefaultByteWidth = 8;
 
 struct show_separator_tag {};
 
-template <class T, size_t N>
-struct address_format {};
-
 template <class T>
-struct address_format<T, 4> {
+struct address_format {
 	static QString format_address(T address, const show_separator_tag &) {
-		static char buffer[10];
-		qsnprintf(buffer, sizeof(buffer), "%04x:%04x", (address >> 16) & 0xffff, address & 0xffff);
-		return QString::fromLatin1(buffer, sizeof(buffer) - 1);
+		if constexpr (sizeof(T) == sizeof(uint32_t)) {
+			static char buffer[10];
+			qsnprintf(buffer, sizeof(buffer), "%04x:%04x", (address >> 16) & 0xffff, address & 0xffff);
+			return QString::fromLatin1(buffer, sizeof(buffer) - 1);
+		} else if constexpr (sizeof(T) == sizeof(uint64_t)) {
+			return edb::value32(address >> 32).toHexString() + ":" + edb::value32(address).toHexString();
+		}
 	}
 
 	static QString format_address(T address) {
-		static char buffer[9];
-		qsnprintf(buffer, sizeof(buffer), "%04x%04x", (address >> 16) & 0xffff, address & 0xffff);
-		return QString::fromLatin1(buffer, sizeof(buffer) - 1);
-	}
-};
-
-template <class T>
-struct address_format<T, 8> {
-	static QString format_address(T address, const show_separator_tag &) {
-		return edb::value32(address >> 32).toHexString() + ":" + edb::value32(address).toHexString();
-	}
-
-	static QString format_address(T address) {
-		return edb::value64(address).toHexString();
+		if constexpr (sizeof(T) == sizeof(uint32_t)) {
+			static char buffer[9];
+			qsnprintf(buffer, sizeof(buffer), "%04x%04x", (address >> 16) & 0xffff, address & 0xffff);
+			return QString::fromLatin1(buffer, sizeof(buffer) - 1);
+		} else if constexpr (sizeof(T) == sizeof(uint64_t)) {
+			return edb::value64(address).toHexString();
+		}
 	}
 };
 
@@ -103,9 +98,9 @@ struct address_format<T, 8> {
 template <class T>
 QString format_address(T address, bool show_separator) {
 	if (show_separator)
-		return address_format<T, sizeof(T)>::format_address(address, show_separator_tag());
+		return address_format<T>::format_address(address, show_separator_tag());
 	else
-		return address_format<T, sizeof(T)>::format_address(address);
+		return address_format<T>::format_address(address);
 }
 
 //------------------------------------------------------------------------------
@@ -164,20 +159,15 @@ QDisassemblyView::QDisassemblyView(QWidget *parent)
 	  currentBpRenderer_(QLatin1String(":/debugger/images/arrow-right-red.svg")),
 	  syntaxCache_(256) {
 
-	QSettings settings;
-	settings.beginGroup("Theme");
+	// TODO(eteran): it makes more sense for these to have setters/getters and it just be told
+	// by the parent what these colors should be
+	Theme theme = Theme::load();
 
-	takenJumpColor_         = QColor(settings.value("theme.taken_jump.foreground", "red").toString());
-	fillingBytesColor_      = QColor(settings.value("theme.filling.foreground", "gray").toString());
-	addressForegroundColor_ = QColor(settings.value("theme.address.foreground", "red").toString());
-	badgeBackgroundColor_   = QColor(settings.value("theme.badge.background", "blue").toString());
-	badgeForegroundColor_   = QColor(settings.value("theme.badge.foreground", "white").toString());
-
-
-	auto palette         = this->palette();
-	auto backgroundColor = QColor(settings.value("theme.disassembly.background", palette.color(QPalette::Base).name()).toString());
-	palette.setColor(QPalette::Base, backgroundColor);
-	setPalette(palette);
+	takenJumpColor_         = theme.text[Theme::TakenJump].foreground().color();
+	fillingBytesColor_      = theme.text[Theme::Filling].foreground().color();
+	addressForegroundColor_ = theme.text[Theme::Address].foreground().color();
+	badgeBackgroundColor_   = theme.misc[Theme::Badge].background().color();
+	badgeForegroundColor_   = theme.misc[Theme::Badge].foreground().color();
 
 	setShowAddressSeparator(true);
 
@@ -410,7 +400,7 @@ int QDisassemblyView::followingInstructions(int current_address, int count) {
 //------------------------------------------------------------------------------
 void QDisassemblyView::wheelEvent(QWheelEvent *e) {
 
-	const int dy           = e->delta();
+	const int dy           = e->angleDelta().y();
 	const int scroll_count = dy / 120;
 
 	// Ctrl+Wheel scrolls by single bytes
@@ -423,7 +413,7 @@ void QDisassemblyView::wheelEvent(QWheelEvent *e) {
 
 	const int abs_scroll_count = std::abs(scroll_count);
 
-	if (e->delta() > 0) {
+	if (dy > 0) {
 		// scroll up
 		int address = verticalScrollBar()->value();
 		address     = previousInstructions(address, abs_scroll_count);
@@ -717,7 +707,7 @@ void QDisassemblyView::paintLineBg(QPainter &painter, QBrush brush, int line, in
 // Desc: A helper function which sets line to the line on which addr appears,
 // or returns false if that line does not appear to exist.
 //------------------------------------------------------------------------------
-boost::optional<unsigned int> QDisassemblyView::getLineOfAddress(edb::address_t addr) const {
+std::optional<unsigned int> QDisassemblyView::getLineOfAddress(edb::address_t addr) const {
 
 	if (!showAddresses_.isEmpty()) {
 		if (addr >= showAddresses_[0] && addr <= showAddresses_[showAddresses_.size() - 1]) {
@@ -728,7 +718,7 @@ boost::optional<unsigned int> QDisassemblyView::getLineOfAddress(edb::address_t 
 		}
 	}
 
-	return boost::none;
+	return {};
 }
 
 //------------------------------------------------------------------------------
@@ -861,7 +851,7 @@ void QDisassemblyView::drawRegiserBadges(QPainter &painter, DrawingContext *ctx)
 					// Does addr appear here?
 					edb::address_t addr = reg.valueAsAddress();
 
-					if (boost::optional<unsigned int> line = getLineOfAddress(addr)) {
+					if (std::optional<unsigned int> line = getLineOfAddress(addr)) {
 						if (!badge_labels[*line].isEmpty()) {
 							badge_labels[*line].append(", ");
 						}
@@ -870,7 +860,7 @@ void QDisassemblyView::drawRegiserBadges(QPainter &painter, DrawingContext *ctx)
 
 					// what about [addr]?
 					if (process->readBytes(addr, &addr, edb::v1::pointer_size())) {
-						if (boost::optional<unsigned int> line = getLineOfAddress(addr)) {
+						if (std::optional<unsigned int> line = getLineOfAddress(addr)) {
 							if (!badge_labels[*line].isEmpty()) {
 								badge_labels[*line].append(", ");
 							}
@@ -2008,7 +1998,7 @@ void QDisassemblyView::mouseMoveEvent(QMouseEvent *event) {
 			}
 			const int min_line1 = 0;
 			const int max_line1 = line2() - fontWidth_;
-			line1_              = std::min(std::max(min_line1, x_pos), max_line1);
+			line1_              = std::clamp(x_pos, min_line1, max_line1);
 			update();
 		} else if (movingLine2_) {
 			if (line3_ == 0) {
@@ -2016,7 +2006,7 @@ void QDisassemblyView::mouseMoveEvent(QMouseEvent *event) {
 			}
 			const int min_line2 = line1() + iconWidth_;
 			const int max_line2 = line3() - fontWidth_;
-			line2_              = std::min(std::max(min_line2, x_pos), max_line2);
+			line2_              = std::clamp(x_pos, min_line2, max_line2);
 			update();
 		} else if (movingLine3_) {
 			if (line4_ == 0) {
@@ -2024,12 +2014,12 @@ void QDisassemblyView::mouseMoveEvent(QMouseEvent *event) {
 			}
 			const int min_line3 = line2() + fontWidth_ + fontWidth_ / 2;
 			const int max_line3 = line4() - fontWidth_;
-			line3_              = std::min(std::max(min_line3, x_pos), max_line3);
+			line3_              = std::clamp(x_pos, min_line3, max_line3);
 			update();
 		} else if (movingLine4_) {
 			const int min_line4 = line3() + fontWidth_;
 			const int max_line4 = width() - 1 - (verticalScrollBar()->width() + 3);
-			line4_              = std::min(std::max(min_line4, x_pos), max_line4);
+			line4_              = std::clamp(x_pos, min_line4, max_line4);
 			update();
 		} else {
 			if ((near_line(x_pos, line1()) && edb::v1::config().show_jump_arrow) ||
@@ -2142,7 +2132,8 @@ QByteArray QDisassemblyView::saveState() const {
 		line1_,
 		line2_,
 		line3_,
-		line4_};
+		line4_,
+	};
 
 	char buf[sizeof(WidgetState1)];
 	memcpy(buf, &state, sizeof(buf));

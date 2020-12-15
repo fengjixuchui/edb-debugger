@@ -449,9 +449,7 @@ EDB_EXPORT QString format_float(Float value) {
 			StringBuilder builder(buffer, sizeof(buffer));
 			bool ret = false;
 
-			// NOTE(eteran): we get a warning here about out of bounds memory reads, but it functionally can't happen at runtime
-			// if we had constexpr if, we could avoid the warning
-			if (isDouble) {
+			if constexpr (isDouble) {
 				double d;
 				std::memcpy(&d, &value, sizeof(d));
 				ret = conv.ToShortest(d, &builder);
@@ -473,7 +471,7 @@ EDB_EXPORT QString format_float(Float value) {
 		}
 #endif
 #if defined(HAVE_GDTOA)
-		if (std::is_same<Float, edb::value80>::value) {
+		if constexpr (std::is_same<Float, edb::value80>::value) {
 			char buffer[64] = {};
 			gdtoa_g_xfmt(buffer, &value, -1, sizeof buffer);
 			fixup_g_Yfmt(buffer, std::numeric_limits<long double>::digits10);
